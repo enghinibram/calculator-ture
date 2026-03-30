@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculator Ture</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrap">
+
+    <h1>Calculator Ture</h1>
+
+    <div class="section">
+      <label for="tura-type">Tipul de tură</label>
+      <select id="tura-type">
+        <option value="12/24-12/48">12/24 – 12/48 (zi, noapte, 2 zile libere)</option>
+        <option value="12/24">12/24 (alternativ zi/noapte)</option>
+        <option value="12/24-24/72">12/24 – 24/72 (zi, noapte, 3 zile libere)</option>
+      </select>
+    </div>
+
+    <div class="section">
+      <label>Sărbători vizibile</label>
+      <div class="filters">
+        <button class="filter-btn active-ort" id="btn-ort" data-type="ort">✦ Ortodoxe</button>
+        <button class="filter-btn active-iud" id="btn-iud" data-type="iud">✦ Iudaice</button>
+        <button class="filter-btn active-isl" id="btn-isl" data-type="isl">✦ Islamice</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <p class="info" id="start-info">Apasă pe o zi de tură de ZI pentru a seta tiparul.</p>
+      <div class="cal-header">
+        <button id="prev-month">&#8592;</button>
+        <span id="month-label"></span>
+        <button id="next-month">&#8594;</button>
+      </div>
+      <div class="cal-grid" id="cal"></div>
+      <div class="legend-shifts">
+        <div class="leg-item"><div class="leg-dot leg-zi"></div>Zi</div>
+        <div class="leg-item"><div class="leg-dot leg-noapte"></div>Noapte</div>
+        <div class="leg-item"><div class="leg-dot leg-liber"></div>Liber</div>
+        <div class="leg-item"><span class="leg-text ort">Portocaliu</span>&nbsp;= Ortodox</div>
+        <div class="leg-item"><span class="leg-text iud">Mov</span>&nbsp;= Iudaic</div>
+        <div class="leg-item"><span class="leg-text isl">Verde</span>&nbsp;= Islamic</div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="stat-val" id="ore-lucrate">—</div><div class="stat-lbl">ore lucrate luna asta</div></div>
+      <div class="stat"><div class="stat-val" id="norma">—</div><div class="stat-lbl">norma lunii (ore)</div></div>
+      <div class="stat"><div class="stat-val" id="ore-extra">—</div><div class="stat-lbl">ore extra / minus</div></div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
