@@ -4,12 +4,34 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Calculator Ture</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#1D9E75" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="wrap">
 
-    <h1>Calculator Ture</h1>
+  <!-- ===== AUTH OVERLAY ===== -->
+  <div id="auth-overlay" class="auth-overlay" style="display:none">
+    <div class="auth-box">
+      <h2 class="auth-title">Calculator Ture</h2>
+      <p class="auth-sub">Loghează-te pentru a salva tiparul tău de tură</p>
+      <div id="auth-error" class="auth-error" style="display:none"></div>
+      <input type="email" id="auth-email" placeholder="Email" class="auth-input" />
+      <input type="password" id="auth-pass" placeholder="Parolă" class="auth-input" />
+      <button class="auth-btn" onclick="doLogin()">Intră în cont</button>
+      <button class="auth-btn secondary" onclick="doRegister()">Cont nou</button>
+      <button class="auth-btn ghost" onclick="closeAuth()">Continuă fără cont</button>
+    </div>
+  </div>
+
+  <!-- ===== APP ===== -->
+  <div class="wrap">
+    <div class="app-header">
+      <h1>Calculator Ture</h1>
+      <div id="user-bar">
+        <button class="user-btn" id="login-btn" onclick="openAuth()">Intră în cont</button>
+      </div>
+    </div>
 
     <div class="section">
       <label for="tura-type">Tipul de tură</label>
@@ -36,6 +58,10 @@
         <span id="month-label"></span>
         <button id="next-month">&#8594;</button>
       </div>
+      <div id="nav-notice" class="nav-notice" style="display:none">
+        🔒 Loghează-te pentru a naviga între luni și a salva tiparul.
+        <button onclick="openAuth()">Login</button>
+      </div>
       <div class="cal-grid" id="cal"></div>
       <div class="legend-shifts">
         <div class="leg-item"><div class="leg-dot leg-zi"></div>Zi</div>
@@ -53,8 +79,12 @@
       <div class="stat"><div class="stat-val" id="ore-extra">—</div><div class="stat-lbl">ore extra / minus</div></div>
     </div>
 
+    <button id="pwa-install-btn" class="pwa-btn" style="display:none">
+      📱 Instalează aplicația pe telefon
+    </button>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
 </body>
 </html>

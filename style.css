@@ -1,301 +1,377 @@
 /* ===== Reset & Base ===== */
 *, *::before, *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-  
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: 15px;
-    background: #f5f5f5;
-    color: #1a1a1a;
-    min-height: 100vh;
-    padding: 1.5rem 1rem;
-  }
-  
-  /* ===== Layout ===== */
-  .wrap {
-    max-width: 640px;
-    margin: 0 auto;
-    background: #ffffff;
-    border-radius: 14px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-  }
-  
-  h1 {
-    font-size: 20px;
-    font-weight: 600;
-    margin-bottom: 1.25rem;
-    color: #1a1a1a;
-  }
-  
-  .section {
-    margin-bottom: 1.25rem;
-  }
-  
-  label {
-    font-size: 13px;
-    color: #666;
-    display: block;
-    margin-bottom: 6px;
-  }
-  
-  /* ===== Select ===== */
-  select {
-    width: 100%;
-    padding: 9px 12px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-size: 14px;
-    background: #fff;
-    color: #1a1a1a;
-    cursor: pointer;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-  }
-  
-  select:focus {
-    outline: none;
-    border-color: #888;
-  }
-  
-  /* ===== Filter Buttons ===== */
-  .filters {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-bottom: 12px;
-  }
-  
-  .filter-btn {
-    padding: 5px 14px;
-    border: 1px solid #ddd;
-    border-radius: 20px;
-    font-size: 12px;
-    cursor: pointer;
-    background: #fff;
-    color: #888;
-    transition: all 0.15s;
-  }
-  
-  .filter-btn.active-ort {
-    background: #FEF3E2;
-    color: #7A3B10;
-    border-color: #F5A623;
-  }
-  
-  .filter-btn.active-iud {
-    background: #F0EFFE;
-    color: #3C3289;
-    border-color: #A09BE8;
-  }
-  
-  .filter-btn.active-isl {
-    background: #E3F6EE;
-    color: #085041;
-    border-color: #4DC9A0;
-  }
-  
-  /* ===== Info Box ===== */
-  .info {
-    font-size: 13px;
-    color: #666;
-    background: #f9f9f9;
-    padding: 9px 12px;
-    border-radius: 8px;
-    margin-bottom: 12px;
-    line-height: 1.5;
-    border-left: 3px solid #4DC9A0;
-  }
-  
-  /* ===== Calendar Header ===== */
-  .cal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-  }
-  
-  .cal-header span {
-    font-size: 15px;
-    font-weight: 600;
-  }
-  
-  .cal-header button {
-    background: none;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 5px 12px;
-    cursor: pointer;
-    font-size: 15px;
-    color: #333;
-    transition: background 0.1s;
-  }
-  
-  .cal-header button:hover {
-    background: #f0f0f0;
-  }
-  
-  /* ===== Calendar Grid ===== */
-  .cal-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 3px;
-    text-align: center;
-  }
-  
-  .cal-day-name {
-    font-size: 11px;
-    color: #999;
-    padding: 4px 0;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-  }
-  
-  .day {
-    border-radius: 8px;
-    padding: 4px 2px;
-    font-size: 13px;
-    cursor: pointer;
-    min-height: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    border: 1px solid transparent;
-    transition: border-color 0.1s;
-    user-select: none;
-  }
-  
-  .day:hover {
-    border-color: #ccc;
-  }
-  
-  .day.empty {
-    cursor: default;
-  }
-  
-  .day.zi {
-    background: #E6F1FB;
-    color: #0C447C;
-  }
-  
-  .day.noapte {
-    background: #EEEDFE;
-    color: #3C3289;
-  }
-  
-  .day.liber {
-    background: #f5f5f5;
-    color: #999;
-  }
-  
-  .day.today {
-    border-color: #1D9E75 !important;
-    font-weight: 600;
-  }
-  
-  .day.start-sel {
-    border: 2px solid #BA7517;
-    font-weight: 600;
-  }
-  
-  /* ===== Shift Badge (Z / N) ===== */
-  .shift-badge {
-    font-size: 9px;
-    margin-top: 2px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-  }
-  
-  /* ===== Holiday Name ===== */
-  .hol-name {
-    font-size: 8px;
-    line-height: 1.2;
-    margin-top: 2px;
-    font-weight: 600;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    padding: 0 2px;
-  }
-  
-  .hol-ort { color: #7A3B10; }
-  .hol-iud { color: #3C3289; }
-  .hol-isl { color: #085041; }
-  
-  /* ===== Legend ===== */
-  .legend-shifts {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-top: 10px;
-    align-items: center;
-  }
-  
-  .leg-item {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 11px;
-    color: #666;
-  }
-  
-  .leg-dot {
-    width: 11px;
-    height: 11px;
-    border-radius: 3px;
-  }
-  
-  .leg-zi    { background: #E6F1FB; border: 1px solid #B5D4F4; }
-  .leg-noapte{ background: #EEEDFE; border: 1px solid #CECBF6; }
-  .leg-liber { background: #f0f0f0; border: 1px solid #ddd; }
-  
-  .leg-text       { font-size: 11px; font-weight: 600; }
-  .leg-text.ort   { color: #7A3B10; }
-  .leg-text.iud   { color: #3C3289; }
-  .leg-text.isl   { color: #085041; }
-  
-  /* ===== Stats ===== */
-  .stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-top: 1.25rem;
-  }
-  
-  .stat {
-    background: #f5f5f5;
-    border-radius: 10px;
-    padding: 12px 8px;
-    text-align: center;
-  }
-  
-  .stat-val {
-    font-size: 22px;
-    font-weight: 700;
-    color: #1a1a1a;
-  }
-  
-  .stat-lbl {
-    font-size: 10px;
-    color: #888;
-    margin-top: 3px;
-    line-height: 1.4;
-  }
-  
-  /* ===== Responsive ===== */
-  @media (max-width: 420px) {
-    body { padding: 0.5rem; }
-    .wrap { padding: 1rem; border-radius: 10px; }
-    h1 { font-size: 17px; }
-    .day { min-height: 44px; font-size: 12px; }
-    .stats { gap: 6px; }
-    .stat-val { font-size: 18px; }
-  }
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 15px;
+  background: #f5f5f5;
+  color: #1a1a1a;
+  min-height: 100vh;
+  padding: 1.5rem 1rem;
+}
+
+/* ===== Layout ===== */
+.wrap {
+  max-width: 640px;
+  margin: 0 auto;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+h1 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.user-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid #ddd;
+  background: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  color: #333;
+  transition: all 0.15s;
+}
+
+.user-btn:hover {
+  background: #f0f0f0;
+}
+
+.user-btn.logged-in {
+  background: #E3F6EE;
+  color: #085041;
+  border-color: #4DC9A0;
+}
+
+.section {
+  margin-bottom: 1.25rem;
+}
+
+label {
+  font-size: 13px;
+  color: #666;
+  display: block;
+  margin-bottom: 6px;
+}
+
+/* ===== Select ===== */
+select {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+  color: #1a1a1a;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
+select:focus {
+  outline: none;
+  border-color: #888;
+}
+
+/* ===== Filter Buttons ===== */
+.filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.filter-btn {
+  padding: 5px 14px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  background: #fff;
+  color: #888;
+  transition: all 0.15s;
+}
+
+.filter-btn.active-ort { background: #FEF3E2; color: #7A3B10; border-color: #F5A623; }
+.filter-btn.active-iud { background: #F0EFFE; color: #3C3289; border-color: #A09BE8; }
+.filter-btn.active-isl { background: #E3F6EE; color: #085041; border-color: #4DC9A0; }
+
+/* ===== Info Box ===== */
+.info {
+  font-size: 13px;
+  color: #666;
+  background: #f9f9f9;
+  padding: 9px 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  line-height: 1.5;
+  border-left: 3px solid #4DC9A0;
+}
+
+/* ===== Nav Notice ===== */
+.nav-notice {
+  font-size: 12px;
+  color: #7A3B10;
+  background: #FEF3E2;
+  border: 1px solid #F5A623;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.nav-notice button {
+  padding: 3px 10px;
+  border-radius: 12px;
+  border: 1px solid #F5A623;
+  background: #fff;
+  color: #7A3B10;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+/* ===== Calendar Header ===== */
+.cal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.cal-header span {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.cal-header button {
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-size: 15px;
+  color: #333;
+  transition: background 0.1s;
+}
+
+.cal-header button:hover { background: #f0f0f0; }
+.cal-header button:disabled { opacity: 0.3; cursor: default; }
+
+/* ===== Calendar Grid ===== */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+  text-align: center;
+}
+
+.cal-day-name {
+  font-size: 11px;
+  color: #999;
+  padding: 4px 0;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.day {
+  border-radius: 8px;
+  padding: 4px 2px;
+  font-size: 13px;
+  cursor: pointer;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  border: 1px solid transparent;
+  transition: border-color 0.1s;
+  user-select: none;
+}
+
+.day:hover { border-color: #ccc; }
+.day.empty { cursor: default; }
+.day.zi     { background: #E6F1FB; color: #0C447C; }
+.day.noapte { background: #EEEDFE; color: #3C3289; }
+.day.liber  { background: #f5f5f5; color: #999; }
+.day.today  { border-color: #1D9E75 !important; font-weight: 600; }
+.day.start-sel { border: 2px solid #BA7517; font-weight: 600; }
+
+/* ===== Shift Badge ===== */
+.shift-badge {
+  font-size: 9px;
+  margin-top: 2px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* ===== Holiday Name ===== */
+.hol-name {
+  font-size: 8px;
+  line-height: 1.2;
+  margin-top: 2px;
+  font-weight: 600;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 2px;
+}
+
+.hol-ort { color: #7A3B10; }
+.hol-iud { color: #3C3289; }
+.hol-isl { color: #085041; }
+
+/* ===== Legend ===== */
+.legend-shifts {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  align-items: center;
+}
+
+.leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #666; }
+.leg-dot  { width: 11px; height: 11px; border-radius: 3px; }
+.leg-zi     { background: #E6F1FB; border: 1px solid #B5D4F4; }
+.leg-noapte { background: #EEEDFE; border: 1px solid #CECBF6; }
+.leg-liber  { background: #f0f0f0; border: 1px solid #ddd; }
+.leg-text       { font-size: 11px; font-weight: 600; }
+.leg-text.ort   { color: #7A3B10; }
+.leg-text.iud   { color: #3C3289; }
+.leg-text.isl   { color: #085041; }
+
+/* ===== Stats ===== */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 1.25rem;
+}
+
+.stat { background: #f5f5f5; border-radius: 10px; padding: 12px 8px; text-align: center; }
+.stat-val { font-size: 22px; font-weight: 700; color: #1a1a1a; }
+.stat-lbl { font-size: 10px; color: #888; margin-top: 3px; line-height: 1.4; }
+
+/* ===== PWA Install Button ===== */
+.pwa-btn {
+  display: block;
+  width: 100%;
+  margin-top: 1.25rem;
+  padding: 10px;
+  background: #1D9E75;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.pwa-btn:hover { background: #178060; }
+
+/* ===== Auth Overlay ===== */
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.auth-box {
+  background: #fff;
+  border-radius: 16px;
+  padding: 2rem 1.5rem;
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+}
+
+.auth-title {
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+  color: #1a1a1a;
+}
+
+.auth-sub {
+  font-size: 13px;
+  color: #888;
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.auth-input {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.auth-input:focus { border-color: #1D9E75; }
+
+.auth-btn {
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  background: #1D9E75;
+  color: white;
+}
+
+.auth-btn:hover { background: #178060; }
+.auth-btn.secondary { background: #f0f0f0; color: #1a1a1a; }
+.auth-btn.secondary:hover { background: #e0e0e0; }
+.auth-btn.ghost { background: transparent; color: #aaa; font-size: 12px; }
+.auth-btn.ghost:hover { color: #666; }
+
+.auth-error {
+  background: #FEE;
+  color: #A32D2D;
+  border: 1px solid #FFAAAA;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 420px) {
+  body { padding: 0.5rem; }
+  .wrap { padding: 1rem; border-radius: 10px; }
+  h1 { font-size: 17px; }
+  .day { min-height: 44px; font-size: 12px; }
+  .stats { gap: 6px; }
+  .stat-val { font-size: 18px; }
+}
