@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ro">
+<html lang="ro" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -24,11 +24,22 @@
     </div>
   </div>
 
+  <!-- ===== USER DROPDOWN ===== -->
+  <div id="user-dropdown" class="user-dropdown" style="display:none">
+    <div class="dropdown-info">
+      <div class="dropdown-name" id="dropdown-name"></div>
+      <div class="dropdown-email" id="dropdown-email"></div>
+    </div>
+    <hr class="dropdown-divider" />
+    <button class="dropdown-logout" onclick="doLogout()">🚪 Deloghează-te</button>
+  </div>
+
   <!-- ===== APP ===== -->
   <div class="wrap">
     <div class="app-header">
       <h1>Calculator Ture</h1>
-      <div id="user-bar">
+      <div class="header-actions">
+        <button id="theme-toggle" class="theme-btn" onclick="toggleTheme()" title="Schimbă tema">🌙</button>
         <button class="user-btn" id="login-btn" onclick="openAuth()">Intră în cont</button>
       </div>
     </div>
@@ -87,9 +98,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
   <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js');
-  }
-</script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/calculator-ture/sw.js');
+    }
+  </script>
 </body>
 </html>

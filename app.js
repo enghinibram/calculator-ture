@@ -13,6 +13,25 @@ let startDate = null;
 let filters   = { ort: true, iud: true, isl: true };
 let currentUser = null;
 
+// ===== Dark Mode =====
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('theme-toggle').textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+  localStorage.setItem('ture-theme', next);
+}
+
+// Aplică tema salvată la încărcare
+(function initTheme() {
+  const saved = localStorage.getItem('ture-theme') || 'light';
+  applyTheme(saved);
+})();
+
 // ===== Norme oficiale ore/lună =====
 const NORMA = {
   2025: [168, 160, 168, 168, 160, 168, 184, 168, 176, 184, 160, 160],
@@ -110,7 +129,7 @@ const HOLIDAYS = {
   '2026-12-26':{ name: 'Crăciunul',       type: 'ort' },
 };
 
-// ===== Funcții utilitare =====
+// ===== Utilitare =====
 function dayDiff(a, b) {
   const ua = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
   const ub = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
@@ -132,16 +151,13 @@ function getHoliday(year, month, day) {
   return h;
 }
 
-// ===== Supabase: salvare setări =====
+// ===== Supabase: salvare =====
 async function saveSettings() {
   if (!currentUser) return;
-
   const turaType = document.getElementById('tura-type').value;
   const startStr = startDate
     ? `${startDate.getFullYear()}-${String(startDate.getMonth()+1).padStart(2,'0')}-${String(startDate.getDate()).padStart(2,'0')}`
     : null;
-
-  // Upsert — dacă există deja un rând pentru user, îl actualizează
   await sb.from('user_settings').upsert({
     user_id: currentUser.id,
     start_date: startStr,
@@ -149,28 +165,22 @@ async function saveSettings() {
   }, { onConflict: 'user_id' });
 }
 
-// ===== Supabase: încărcare setări =====
+// ===== Supabase: încărcare =====
 async function loadSettings() {
   if (!currentUser) return;
-
   const { data } = await sb
     .from('user_settings')
     .select('*')
     .eq('user_id', currentUser.id)
     .single();
-
   if (data) {
-    if (data.tura_type) {
-      document.getElementById('tura-type').value = data.tura_type;
-    }
+    if (data.tura_type) document.getElementById('tura-type').value = data.tura_type;
     if (data.start_date) {
       const parts = data.start_date.split('-');
       startDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
       document.getElementById('start-info').textContent =
         'Start tură de zi: ' +
-        startDate.toLocaleDateString('ro-RO', {
-          weekday: 'long', day: 'numeric', month: 'long'
-        }) +
+        startDate.toLocaleDateString('ro-RO', { weekday: 'long', day: 'numeric', month: 'long' }) +
         ' · tiparul merge în ambele direcții';
     }
   }
@@ -179,6 +189,7 @@ async function loadSettings() {
 
 // ===== Auth UI =====
 function openAuth() {
+  closeDropdown();
   document.getElementById('auth-overlay').style.display = 'flex';
 }
 
@@ -206,50 +217,73 @@ async function doRegister() {
   if (pass.length < 6) { showAuthError('Parola trebuie să aibă minim 6 caractere.'); return; }
   const { error } = await sb.auth.signUp({ email, password: pass });
   if (error) { showAuthError('Eroare la creare cont. Încearcă din nou.'); return; }
-  showAuthError('');
-  document.getElementById('auth-error').style.display = 'none';
-  // Afișăm mesaj de confirmare
-  const box = document.querySelector('.auth-box');
-  box.innerHTML = `
+  document.querySelector('.auth-box').innerHTML = `
     <h2 class="auth-title">✅ Cont creat!</h2>
     <p class="auth-sub">Verifică emailul pentru confirmare, după care loghează-te.</p>
     <button class="auth-btn" onclick="location.reload()">OK</button>
   `;
 }
 
-// ===== Actualizare UI după auth =====
-function updateUserBar(user) {
+async function doLogout() {
+  closeDropdown();
+  await sb.auth.signOut();
+}
+
+// ===== Dropdown =====
+function toggleDropdown() {
+  const dd = document.getElementById('user-dropdown');
+  const isVisible = dd.style.display === 'block';
+  dd.style.display = isVisible ? 'none' : 'block';
+}
+
+function closeDropdown() {
+  document.getElementById('user-dropdown').style.display = 'none';
+}
+
+// Închide dropdown la click în afara lui
+document.addEventListener('click', (e) => {
+  const dd  = document.getElementById('user-dropdown');
   const btn = document.getElementById('login-btn');
+  if (!dd.contains(e.target) && !btn.contains(e.target)) {
+    closeDropdown();
+  }
+});
+
+// ===== Update UI după auth =====
+function updateUserBar(user) {
+  const btn    = document.getElementById('login-btn');
   const notice = document.getElementById('nav-notice');
   const prevBtn = document.getElementById('prev-month');
   const nextBtn = document.getElementById('next-month');
+  const ddName  = document.getElementById('dropdown-name');
+  const ddEmail = document.getElementById('dropdown-email');
 
   if (user) {
     currentUser = user;
-    btn.textContent = '👤 ' + user.email.split('@')[0];
-    btn.className = 'user-btn logged-in';
-    btn.onclick = async () => {
-      await sb.auth.signOut();
-    };
-    notice.style.display = 'none';
+    const name = user.email.split('@')[0];
+    btn.textContent = '👤 ' + name;
+    btn.className   = 'user-btn logged-in';
+    btn.onclick     = toggleDropdown;
+    ddName.textContent  = name;
+    ddEmail.textContent = user.email;
+    notice.style.display  = 'none';
     prevBtn.disabled = false;
     nextBtn.disabled = false;
   } else {
     currentUser = null;
     btn.textContent = 'Intră în cont';
-    btn.className = 'user-btn';
-    btn.onclick = openAuth;
-    // Resetăm la luna curentă
+    btn.className   = 'user-btn';
+    btn.onclick     = openAuth;
     viewYear  = today.getFullYear();
     viewMonth = today.getMonth();
-    notice.style.display = 'flex';
+    notice.style.display  = 'flex';
     prevBtn.disabled = true;
     nextBtn.disabled = true;
     recalc();
   }
 }
 
-// ===== Recalculare ore și render =====
+// ===== Recalculare =====
 function recalc() {
   const year  = viewYear;
   const month = viewMonth;
@@ -269,7 +303,7 @@ function recalc() {
     document.getElementById('norma').textContent       = norma;
     const elExtra = document.getElementById('ore-extra');
     elExtra.textContent = (extra >= 0 ? '+' : '') + extra;
-    elExtra.style.color = extra >= 0 ? '#0F6E56' : '#A32D2D';
+    elExtra.style.color = extra >= 0 ? '#1D9E75' : '#e53e3e';
   }
 
   renderCal();
@@ -280,11 +314,8 @@ function renderCal() {
   const year  = viewYear;
   const month = viewMonth;
 
-  const lbl = new Date(year, month, 1).toLocaleDateString('ro-RO', {
-    month: 'long', year: 'numeric'
-  });
-  document.getElementById('month-label').textContent =
-    lbl.charAt(0).toUpperCase() + lbl.slice(1);
+  const lbl = new Date(year, month, 1).toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' });
+  document.getElementById('month-label').textContent = lbl.charAt(0).toUpperCase() + lbl.slice(1);
 
   const firstDay = new Date(year, month, 1).getDay();
   const offset   = firstDay === 0 ? 6 : firstDay - 1;
@@ -292,7 +323,6 @@ function renderCal() {
   const names    = ['Lu', 'Ma', 'Mi', 'Jo', 'Vi', 'Sâ', 'Du'];
 
   let html = names.map(n => `<div class="cal-day-name">${n}</div>`).join('');
-
   for (let i = 0; i < offset; i++) html += '<div class="day empty"></div>';
 
   for (let d = 1; d <= days; d++) {
@@ -303,8 +333,7 @@ function renderCal() {
     const isStart = startDate && dateObj.toDateString() === startDate.toDateString();
 
     let cls = 'day';
-    if (sh) cls += ' ' + sh.type;
-    else    cls += ' liber';
+    if (sh) cls += ' ' + sh.type; else cls += ' liber';
     if (isToday) cls += ' today';
     if (isStart) cls += ' start-sel';
 
@@ -315,13 +344,9 @@ function renderCal() {
   }
 
   document.getElementById('cal').innerHTML = html;
-
   document.getElementById('cal').querySelectorAll('.day:not(.empty)').forEach(el => {
     el.addEventListener('click', () => {
-      const y = parseInt(el.dataset.y);
-      const m = parseInt(el.dataset.m);
-      const d = parseInt(el.dataset.d);
-      setStart(y, m, d);
+      setStart(parseInt(el.dataset.y), parseInt(el.dataset.m), parseInt(el.dataset.d));
     });
   });
 }
@@ -331,24 +356,22 @@ function setStart(y, m, d) {
   startDate = new Date(y, m, d);
   document.getElementById('start-info').textContent =
     'Start tură de zi: ' +
-    startDate.toLocaleDateString('ro-RO', {
-      weekday: 'long', day: 'numeric', month: 'long'
-    }) +
+    startDate.toLocaleDateString('ro-RO', { weekday: 'long', day: 'numeric', month: 'long' }) +
     ' · tiparul merge în ambele direcții';
   recalc();
-  saveSettings(); // salvează automat în Supabase dacă e logat
+  saveSettings();
 }
 
 // ===== Navigare luni =====
 function changeMonth(dir) {
-  if (!currentUser) return; // blocat pentru neautentificați
+  if (!currentUser) return;
   viewMonth += dir;
   if (viewMonth > 11) { viewMonth = 0; viewYear++; }
   if (viewMonth < 0)  { viewMonth = 11; viewYear--; }
   recalc();
 }
 
-// ===== Toggle filtre sărbători =====
+// ===== Toggle filtre =====
 function toggleFilter(type) {
   filters[type] = !filters[type];
   const btn = document.getElementById('btn-' + type);
@@ -357,14 +380,9 @@ function toggleFilter(type) {
 }
 
 // ===== Event Listeners =====
-document.getElementById('tura-type').addEventListener('change', () => {
-  recalc();
-  saveSettings();
-});
-
+document.getElementById('tura-type').addEventListener('change', () => { recalc(); saveSettings(); });
 document.getElementById('prev-month').addEventListener('click', () => changeMonth(-1));
 document.getElementById('next-month').addEventListener('click', () => changeMonth(1));
-
 document.querySelectorAll('.filter-btn').forEach(btn => {
   btn.addEventListener('click', () => toggleFilter(btn.dataset.type));
 });
@@ -381,23 +399,18 @@ document.getElementById('pwa-install-btn').addEventListener('click', async () =>
   if (!deferredPrompt) return;
   deferredPrompt.prompt();
   const { outcome } = await deferredPrompt.userChoice;
-  if (outcome === 'accepted') {
-    document.getElementById('pwa-install-btn').style.display = 'none';
-  }
+  if (outcome === 'accepted') document.getElementById('pwa-install-btn').style.display = 'none';
   deferredPrompt = null;
 });
 
-// ===== Auth State Listener =====
+// ===== Auth State =====
 sb.auth.onAuthStateChange(async (event, session) => {
   const user = session?.user ?? null;
   updateUserBar(user);
-  if (user) {
-    await loadSettings();
-  }
+  if (user) await loadSettings();
 });
 
 // ===== Init =====
-// Blocăm navigarea inițial (neautentificat)
 document.getElementById('prev-month').disabled = true;
 document.getElementById('next-month').disabled = true;
 document.getElementById('nav-notice').style.display = 'flex';
