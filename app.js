@@ -291,9 +291,9 @@ function updateUserBar(user) {
     btn.onclick     = openAuth;
     viewYear  = today.getFullYear();
     viewMonth = today.getMonth();
-    notice.style.display  = 'flex';
-    prevBtn.disabled = true;
-    nextBtn.disabled = true;
+    notice.style.display  = 'none';
+    prevBtn.disabled = false;
+    nextBtn.disabled = false;
     recalc();
   }
 }
@@ -308,10 +308,7 @@ function recalc() {
   for (let d = 1; d <= days; d++) {
     const dateObj = new Date(year, month, d);
     const sh = getShift(dateObj);
-    if (isInCO(dateObj)) {
-      // CO = 8h/zi in loc de 12h
-      oreLucrate += 8;
-    } else if (sh && (sh.type === 'zi' || sh.type === 'noapte')) {
+    if (sh && (sh.type === 'zi' || sh.type === 'noapte')) {
       oreLucrate += 12;
     }
   }
@@ -351,24 +348,21 @@ function renderCal() {
     const sh       = getShift(dateObj);
     const hol      = getHoliday(year, month + 1, d);
     const legal    = getLegalHoliday(year, month + 1, d);
-    const inCO     = isInCO(dateObj);
     const isToday  = dateObj.toDateString() === today.toDateString();
     const isStart  = startDate && dateObj.toDateString() === startDate.toDateString();
 
     let cls = 'day';
-    if (inCO)        cls += ' co';
-    else if (sh)     cls += ' ' + sh.type;
+    if (sh)     cls += ' ' + sh.type;
     else             cls += ' liber';
     if (isToday)     cls += ' today';
     if (isStart)     cls += ' start-sel';
     if (legal)       cls += ' legal-holiday';
 
-    const badge      = sh && sh.label && !inCO ? `<span class="shift-badge">${sh.label}</span>` : '';
-    const coBadge    = inCO ? `<span class="hol-name hol-co">CO</span>` : '';
+    const badge      = sh && sh.label ? `<span class="shift-badge">${sh.label}</span>` : '';
     const legalBadge = legal ? `<span class="hol-name hol-legal" title="${legal}">ZL</span>` : '';
     const holHtml    = hol ? `<span class="hol-name hol-${hol.type}">${hol.name}</span>` : '';
 
-    html += `<div class="${cls}" data-y="${year}" data-m="${month}" data-d="${d}">${d}${badge}${coBadge}${legalBadge}${holHtml}</div>`;
+    html += `<div class="${cls}" data-y="${year}" data-m="${month}" data-d="${d}">${d}${badge}${legalBadge}${holHtml}</div>`;
   }
 
   document.getElementById('cal').innerHTML = html;
@@ -392,7 +386,6 @@ function setStart(y, m, d) {
 
 // ===== Navigare luni =====
 function changeMonth(dir) {
-  if (!currentUser) return;
   viewMonth += dir;
   if (viewMonth > 11) { viewMonth = 0; viewYear++; }
   if (viewMonth < 0)  { viewMonth = 11; viewYear--; }
@@ -439,65 +432,4 @@ sb.auth.onAuthStateChange(async (event, session) => {
 });
 
 // ===== Init =====
-document.getElementById('prev-month').disabled = true;
-document.getElementById('next-month').disabled = true;
-document.getElementById('nav-notice').style.display = 'flex';
 recalc();
-
-// ===== CO — Concediu de Odihnă =====
-let coPeriods = []; // array de { start: Date, end: Date }
-
-function openCO() {
-  document.getElementById('co-overlay').style.display = 'flex';
-  document.getElementById('co-error').style.display = 'none';
-}
-
-function closeCO() {
-  document.getElementById('co-overlay').style.display = 'none';
-}
-
-function openCM() {
-  document.getElementById('cm-overlay').style.display = 'flex';
-}
-
-function closeCM() {
-  document.getElementById('cm-overlay').style.display = 'none';
-}
-
-function saveCO() {
-  const startVal = document.getElementById('co-start').value;
-  const endVal   = document.getElementById('co-end').value;
-  const errEl    = document.getElementById('co-error');
-
-  if (!startVal || !endVal) {
-    errEl.textContent = 'Te rugăm completează ambele date.';
-    errEl.style.display = 'block';
-    return;
-  }
-
-  const start = new Date(startVal);
-  const end   = new Date(endVal);
-
-  if (end < start) {
-    errEl.textContent = 'Data de sfârșit trebuie să fie după data de început.';
-    errEl.style.display = 'block';
-    return;
-  }
-
-  coPeriods.push({ start, end });
-  document.getElementById('btn-clear-co').style.display = 'inline-block';
-  closeCO();
-  recalc();
-  saveSettings();
-}
-
-function clearConcedii() {
-  coPeriods = [];
-  document.getElementById('btn-clear-co').style.display = 'none';
-  recalc();
-  saveSettings();
-}
-
-function isInCO(dateObj) {
-  return coPeriods.some(p => dateObj >= p.start && dateObj <= p.end);
-}
