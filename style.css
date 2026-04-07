@@ -363,6 +363,9 @@ select:focus { outline: none; border-color: var(--accent); }
 .hol-ort { color: var(--ort-text); }
 .hol-iud { color: var(--iud-text); }
 .hol-isl { color: var(--isl-text); }
+.hol-legal { color: #fff; background: #c0392b; border-radius: 3px; padding: 0 2px; }
+
+.day.legal-holiday { border: 1.5px solid #c0392b !important; }
 
 /* ===== Legend ===== */
 .legend-shifts {
@@ -488,3 +491,16 @@ select:focus { outline: none; border-color: var(--accent); }
   .stats { gap: 6px; }
   .stat-val { font-size: 18px; }
 }
+
+/* ===== CO / CM Buttons ===== */
+.btn-co { background: #FFF9E6; color: #7A5800; border-color: #F5C623 !important; }
+.btn-co:hover { background: #F5C623; color: white; }
+.btn-cm { background: #EEF2FF; color: #3730A3; border-color: #A5B4FC !important; }
+.btn-cm:hover { background: #A5B4FC; color: white; }
+.btn-clear-co { background: #FEE2E2; color: #991B1B; border-color: #FCA5A5 !important; }
+.btn-clear-co:hover { background: #FCA5A5; color: white; }
+
+/* ===== CO pe calendar ===== */
+.day.co { background: #FFF3B0; color: #7A5800; }
+[data-theme="dark"] .day.co { background: #3D3000; color: #FFD700; }
+.hol-co { color: #7A5800; background: #F5C623; border-radius: 3px; padding: 0 2px; font-size: 8px; }

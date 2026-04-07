@@ -73,50 +73,53 @@ const PATTERNS = {
   ],
 };
 
-// ===== Sărbători 2026 =====
+// ===== Zile libere legale România 2026 =====
+// Acestea sunt marcate cu "ZL" indiferent de toggle-uri
+const LEGAL_HOLIDAYS = {
+  '2026-1-1':  'Anul Nou',
+  '2026-1-2':  'Anul Nou',
+  '2026-1-24': 'Unirea Principatelor',
+  '2026-4-10': 'Vinerea Mare',
+  '2026-4-12': 'Paștele',
+  '2026-4-13': 'Paștele',
+  '2026-5-1':  'Ziua Muncii',
+  '2026-6-1':  'Ziua Copilului',
+  '2026-6-7':  'Rusaliile',
+  '2026-6-8':  'Rusaliile',
+  '2026-8-15': 'Sf. Maria',
+  '2026-11-30':'Sf. Andrei',
+  '2026-12-1': 'Ziua Națională',
+  '2026-12-25':'Crăciunul',
+  '2026-12-26':'Crăciunul',
+};
+
+// ===== Sărbători religioase/culturale 2026 (informativ, cu toggle) =====
 const HOLIDAYS = {
-  '2026-1-1':  { name: 'Anul Nou',        type: 'ort' },
+  // Ortodoxe
   '2026-1-6':  { name: 'Boboteaza',       type: 'ort' },
   '2026-1-7':  { name: 'Sf. Ioan',        type: 'ort' },
-  '2026-1-24': { name: 'Unirea',          type: 'ort' },
-  '2026-2-2':  { name: 'Tu Bishvat',      type: 'iud' },
   '2026-2-24': { name: 'Dragobete',       type: 'ort' },
+  '2026-3-8':  { name: '8 Martie',        type: 'ort' },
+  '2026-4-5':  { name: 'Floriile',        type: 'ort' },
+  '2026-4-11': { name: 'Sâmbăta Mare',    type: 'ort' },
+  '2026-5-21': { name: 'Înălțarea',       type: 'ort' },
+  // Iudaice
+  '2026-2-2':  { name: 'Tu Bishvat',      type: 'iud' },
   '2026-3-2':  { name: 'Postul Esterei',  type: 'iud' },
   '2026-3-3':  { name: 'Purim',           type: 'iud' },
-  '2026-3-8':  { name: '8 Martie',        type: 'ort' },
-  '2026-3-19': { name: 'Eid al-Fitr',     type: 'isl' },
-  '2026-3-20': { name: 'Eid al-Fitr',     type: 'isl' },
   '2026-4-1':  { name: 'Pesach',          type: 'iud' },
   '2026-4-2':  { name: 'Pesach',          type: 'iud' },
   '2026-4-3':  { name: 'Pesach',          type: 'iud' },
   '2026-4-4':  { name: 'Pesach',          type: 'iud' },
-  '2026-4-5':  { name: 'Floriile',        type: 'ort' },
   '2026-4-7':  { name: 'Pesach',          type: 'iud' },
   '2026-4-8':  { name: 'Pesach',          type: 'iud' },
-  '2026-4-10': { name: 'Vinerea Mare',    type: 'ort' },
-  '2026-4-11': { name: 'Sâmbăta Mare',   type: 'ort' },
-  '2026-4-12': { name: 'Paștele',         type: 'ort' },
-  '2026-4-13': { name: 'Paștele',         type: 'ort' },
-  '2026-5-1':  { name: 'Ziua Muncii',     type: 'ort' },
-  '2026-5-21': { name: 'Înălțarea',       type: 'ort' },
   '2026-5-22': { name: 'Shavuot',         type: 'iud' },
-  '2026-5-26': { name: 'Ziua Arafah',     type: 'isl' },
-  '2026-5-27': { name: 'Eid al-Adha',     type: 'isl' },
-  '2026-5-28': { name: 'Eid al-Adha',     type: 'isl' },
-  '2026-5-31': { name: 'Rusaliile',       type: 'ort' },
-  '2026-6-1':  { name: 'Rusaliile',       type: 'ort' },
-  '2026-6-16': { name: 'An Nou Islamic',  type: 'isl' },
-  '2026-6-25': { name: 'Ashura',          type: 'isl' },
   '2026-7-29': { name: "Tisha B'Av",      type: 'iud' },
-  '2026-8-15': { name: 'Sf. Maria',       type: 'ort' },
-  '2026-8-25': { name: 'Mawlid al-Nabi',  type: 'isl' },
   '2026-9-11': { name: 'Rosh Hashana',    type: 'iud' },
   '2026-9-12': { name: 'Rosh Hashana',    type: 'iud' },
   '2026-9-20': { name: 'Yom Kippur',      type: 'iud' },
   '2026-9-25': { name: 'Sukkot',          type: 'iud' },
   '2026-10-1': { name: 'Simhat Torah',    type: 'iud' },
-  '2026-11-30':{ name: 'Sf. Andrei',      type: 'ort' },
-  '2026-12-1': { name: 'Ziua Națională',  type: 'ort' },
   '2026-12-15':{ name: 'Chanukah',        type: 'iud' },
   '2026-12-16':{ name: 'Chanukah',        type: 'iud' },
   '2026-12-17':{ name: 'Chanukah',        type: 'iud' },
@@ -125,8 +128,15 @@ const HOLIDAYS = {
   '2026-12-20':{ name: 'Chanukah',        type: 'iud' },
   '2026-12-21':{ name: 'Chanukah',        type: 'iud' },
   '2026-12-22':{ name: 'Chanukah',        type: 'iud' },
-  '2026-12-25':{ name: 'Crăciunul',       type: 'ort' },
-  '2026-12-26':{ name: 'Crăciunul',       type: 'ort' },
+  // Islamice
+  '2026-3-19': { name: 'Eid al-Fitr',     type: 'isl' },
+  '2026-3-20': { name: 'Eid al-Fitr',     type: 'isl' },
+  '2026-5-26': { name: 'Ziua Arafah',     type: 'isl' },
+  '2026-5-27': { name: 'Eid al-Adha',     type: 'isl' },
+  '2026-5-28': { name: 'Eid al-Adha',     type: 'isl' },
+  '2026-6-16': { name: 'An Nou Islamic',  type: 'isl' },
+  '2026-6-25': { name: 'Ashura',          type: 'isl' },
+  '2026-8-25': { name: 'Mawlid al-Nabi',  type: 'isl' },
 };
 
 // ===== Utilitare =====
@@ -142,6 +152,11 @@ function getShift(dateObj) {
   const diff = dayDiff(startDate, dateObj);
   const idx  = ((diff % pat.length) + pat.length) % pat.length;
   return pat[idx];
+}
+
+function getLegalHoliday(year, month, day) {
+  const key = year + '-' + month + '-' + day;
+  return LEGAL_HOLIDAYS[key] || null;
 }
 
 function getHoliday(year, month, day) {
@@ -291,8 +306,14 @@ function recalc() {
   let oreLucrate = 0;
 
   for (let d = 1; d <= days; d++) {
-    const sh = getShift(new Date(year, month, d));
-    if (sh && (sh.type === 'zi' || sh.type === 'noapte')) oreLucrate += 12;
+    const dateObj = new Date(year, month, d);
+    const sh = getShift(dateObj);
+    if (isInCO(dateObj)) {
+      // CO = 8h/zi in loc de 12h
+      oreLucrate += 8;
+    } else if (sh && (sh.type === 'zi' || sh.type === 'noapte')) {
+      oreLucrate += 12;
+    }
   }
 
   const norma = getNorma(year, month);
@@ -326,21 +347,28 @@ function renderCal() {
   for (let i = 0; i < offset; i++) html += '<div class="day empty"></div>';
 
   for (let d = 1; d <= days; d++) {
-    const dateObj = new Date(year, month, d);
-    const sh      = getShift(dateObj);
-    const hol     = getHoliday(year, month + 1, d);
-    const isToday = dateObj.toDateString() === today.toDateString();
-    const isStart = startDate && dateObj.toDateString() === startDate.toDateString();
+    const dateObj  = new Date(year, month, d);
+    const sh       = getShift(dateObj);
+    const hol      = getHoliday(year, month + 1, d);
+    const legal    = getLegalHoliday(year, month + 1, d);
+    const inCO     = isInCO(dateObj);
+    const isToday  = dateObj.toDateString() === today.toDateString();
+    const isStart  = startDate && dateObj.toDateString() === startDate.toDateString();
 
     let cls = 'day';
-    if (sh) cls += ' ' + sh.type; else cls += ' liber';
-    if (isToday) cls += ' today';
-    if (isStart) cls += ' start-sel';
+    if (inCO)        cls += ' co';
+    else if (sh)     cls += ' ' + sh.type;
+    else             cls += ' liber';
+    if (isToday)     cls += ' today';
+    if (isStart)     cls += ' start-sel';
+    if (legal)       cls += ' legal-holiday';
 
-    const badge   = sh && sh.label ? `<span class="shift-badge">${sh.label}</span>` : '';
-    const holHtml = hol ? `<span class="hol-name hol-${hol.type}">${hol.name}</span>` : '';
+    const badge      = sh && sh.label && !inCO ? `<span class="shift-badge">${sh.label}</span>` : '';
+    const coBadge    = inCO ? `<span class="hol-name hol-co">CO</span>` : '';
+    const legalBadge = legal ? `<span class="hol-name hol-legal" title="${legal}">ZL</span>` : '';
+    const holHtml    = hol ? `<span class="hol-name hol-${hol.type}">${hol.name}</span>` : '';
 
-    html += `<div class="${cls}" data-y="${year}" data-m="${month}" data-d="${d}">${d}${badge}${holHtml}</div>`;
+    html += `<div class="${cls}" data-y="${year}" data-m="${month}" data-d="${d}">${d}${badge}${coBadge}${legalBadge}${holHtml}</div>`;
   }
 
   document.getElementById('cal').innerHTML = html;
@@ -415,3 +443,61 @@ document.getElementById('prev-month').disabled = true;
 document.getElementById('next-month').disabled = true;
 document.getElementById('nav-notice').style.display = 'flex';
 recalc();
+
+// ===== CO — Concediu de Odihnă =====
+let coPeriods = []; // array de { start: Date, end: Date }
+
+function openCO() {
+  document.getElementById('co-overlay').style.display = 'flex';
+  document.getElementById('co-error').style.display = 'none';
+}
+
+function closeCO() {
+  document.getElementById('co-overlay').style.display = 'none';
+}
+
+function openCM() {
+  document.getElementById('cm-overlay').style.display = 'flex';
+}
+
+function closeCM() {
+  document.getElementById('cm-overlay').style.display = 'none';
+}
+
+function saveCO() {
+  const startVal = document.getElementById('co-start').value;
+  const endVal   = document.getElementById('co-end').value;
+  const errEl    = document.getElementById('co-error');
+
+  if (!startVal || !endVal) {
+    errEl.textContent = 'Te rugăm completează ambele date.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const start = new Date(startVal);
+  const end   = new Date(endVal);
+
+  if (end < start) {
+    errEl.textContent = 'Data de sfârșit trebuie să fie după data de început.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  coPeriods.push({ start, end });
+  document.getElementById('btn-clear-co').style.display = 'inline-block';
+  closeCO();
+  recalc();
+  saveSettings();
+}
+
+function clearConcedii() {
+  coPeriods = [];
+  document.getElementById('btn-clear-co').style.display = 'none';
+  recalc();
+  saveSettings();
+}
+
+function isInCO(dateObj) {
+  return coPeriods.some(p => dateObj >= p.start && dateObj <= p.end);
+}

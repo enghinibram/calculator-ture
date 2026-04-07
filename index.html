@@ -63,6 +63,15 @@
     </div>
 
     <div class="section">
+      <label>Concedii</label>
+      <div class="filters">
+        <button class="filter-btn btn-co" onclick="openCO()">🌴 Adaugă CO</button>
+        <button class="filter-btn btn-cm" onclick="openCM()">🏥 Adaugă CM</button>
+        <button class="filter-btn btn-clear-co" onclick="clearConcedii()" id="btn-clear-co" style="display:none">✕ Șterge concedii</button>
+      </div>
+    </div>
+
+    <div class="section">
       <p class="info" id="start-info">Apasă pe o zi de tură de ZI pentru a seta tiparul.</p>
       <div class="cal-header">
         <button id="prev-month">&#8592;</button>
@@ -81,6 +90,8 @@
         <div class="leg-item"><span class="leg-text ort">Portocaliu</span>&nbsp;= Ortodox</div>
         <div class="leg-item"><span class="leg-text iud">Mov</span>&nbsp;= Iudaic</div>
         <div class="leg-item"><span class="leg-text isl">Verde</span>&nbsp;= Islamic</div>
+        <div class="leg-item"><span style="font-size:9px;background:#c0392b;color:white;padding:1px 4px;border-radius:3px;font-weight:700;">ZL</span>&nbsp;= Zi liberă legală</div>
+        <div class="leg-item"><span style="font-size:9px;background:#F5C623;color:#7A5800;padding:1px 4px;border-radius:3px;font-weight:700;">CO</span>&nbsp;= Concediu de Odihnă (8h/zi)</div>
       </div>
     </div>
 
@@ -93,6 +104,31 @@
     <button id="pwa-install-btn" class="pwa-btn" style="display:none">
       📱 Instalează aplicația pe telefon
     </button>
+  </div>
+
+  <!-- ===== MODAL CO ===== -->
+  <div id="co-overlay" class="auth-overlay" style="display:none">
+    <div class="auth-box">
+      <h2 class="auth-title">🌴 Concediu de Odihnă</h2>
+      <p class="auth-sub">Zilele de CO se calculează cu 8h/zi</p>
+      <div id="co-error" class="auth-error" style="display:none"></div>
+      <label style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">Data început</label>
+      <input type="date" id="co-start" class="auth-input" />
+      <label style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">Data sfârșit</label>
+      <input type="date" id="co-end" class="auth-input" />
+      <button class="auth-btn" onclick="saveCO()">Salvează CO</button>
+      <button class="auth-btn ghost" onclick="closeCO()">Anulează</button>
+    </div>
+  </div>
+
+  <!-- ===== MODAL CM ===== -->
+  <div id="cm-overlay" class="auth-overlay" style="display:none">
+    <div class="auth-box">
+      <h2 class="auth-title">🏥 Concediu Medical</h2>
+      <p class="auth-sub">Funcționalitate în curând disponibilă</p>
+      <p style="font-size:13px;color:var(--text-muted);text-align:center;line-height:1.6;">Calculul CM depinde de legislația muncii și va fi disponibil într-o versiune viitoare.</p>
+      <button class="auth-btn" onclick="closeCM()">Am înțeles</button>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
