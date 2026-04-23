@@ -53,9 +53,7 @@ function getNorma(year, month) {
 }
 
 // ===== Tipare de tură =====
-// ore = ore per zi lucrată (pentru calcul stats)
 const PATTERNS = {
-  // 12 ore
   '12/24-12/48': {
     ore: 12,
     zile: [
@@ -85,7 +83,6 @@ const PATTERNS = {
       { type: 'liber',  label: '' },
     ]
   },
-  // 8 ore - schimb fix dimineață (5 zile lucru, 2 libere)
   '8/3-dimineata': {
     ore: 8,
     zile: [
@@ -98,7 +95,6 @@ const PATTERNS = {
       { type: 'liber', label: '' },
     ]
   },
-  // 8 ore - schimb fix după-amiază
   '8/3-dupaamiaza': {
     ore: 8,
     zile: [
@@ -111,7 +107,6 @@ const PATTERNS = {
       { type: 'liber',  label: '' },
     ]
   },
-  // 8 ore - schimb fix noapte
   '8/3-noapte': {
     ore: 8,
     zile: [
@@ -124,7 +119,6 @@ const PATTERNS = {
       { type: 'liber',  label: '' },
     ]
   },
-  // 8 ore - rotativ 3 schimburi: D(×5) A(×5) N(×5) L(×6) — ciclu de 21 zile
   '8/3-rotativ': {
     ore: 8,
     zile: [
@@ -151,7 +145,6 @@ const PATTERNS = {
       { type: 'liber',  label: '' },
     ]
   },
-  // 24 ore
   '24/48': {
     ore: 24,
     zile: [
@@ -328,10 +321,10 @@ function updateEditModeUI() {
   btnCo.classList.toggle('active-edit-co', editMode === 'co');
   btnCm.classList.toggle('active-edit-cm', editMode === 'cm');
   if (editMode === 'co') {
-    hint.textContent = '✏️ Apasă pe o zi lucrătoare pentru a marca/demarca CO (8h/zi)';
+    hint.textContent = '✏️ Apasă pe orice zi pentru a marca/demarca CO (8h/zi)';
     hint.style.display = 'block';
   } else if (editMode === 'cm') {
-    hint.textContent = '✏️ Apasă pe o zi lucrătoare pentru a marca/demarca CM (8h/zi)';
+    hint.textContent = '✏️ Apasă pe orice zi pentru a marca/demarca CM (8h/zi)';
     hint.style.display = 'block';
   } else {
     hint.style.display = 'none';
@@ -341,21 +334,23 @@ function updateEditModeUI() {
 // ===== Click pe zi =====
 function handleDayClick(y, m, d) {
   const dateObj = new Date(y, m, d);
-  const sh  = getShift(dateObj);
   const key = dayKey(y, m + 1, d);
 
   if (editMode === 'co') {
-    if (!sh || sh.type === 'liber') return;
+    // ✅ CO se poate marca pe orice zi — inclusiv zilele libere
     if (cmDays.has(key)) cmDays.delete(key);
     coDays.has(key) ? coDays.delete(key) : coDays.add(key);
     recalc(); saveSettings(); return;
   }
+
   if (editMode === 'cm') {
-    if (!sh || sh.type === 'liber') return;
+    // ✅ CM se poate marca pe orice zi — inclusiv zilele libere
     if (coDays.has(key)) coDays.delete(key);
     cmDays.has(key) ? cmDays.delete(key) : cmDays.add(key);
     recalc(); saveSettings(); return;
   }
+
+  // Click normal → setare start tură (doar dacă nu e mod editare)
   setStart(y, m, d);
 }
 
@@ -401,7 +396,6 @@ async function doRegister() {
   const { error } = await sb.auth.signUp({ email, password: pass });
   if (error) { showAuthError('Eroare la creare cont. Încearcă din nou.'); return; }
 
-  // Mesaj funny de bun venit
   document.getElementById('auth-box-inner').innerHTML = `
     <div style="text-align:center; padding: 0.5rem 0;">
       <div style="font-size: 48px; margin-bottom: 1rem;">👷</div>
@@ -487,8 +481,10 @@ function recalc() {
     const key = dayKey(year, month + 1, d);
 
     if (coDays.has(key)) {
+      // CO contează 8h indiferent dacă ziua era liberă sau lucrătoare
       oreCoLuna += 8;
     } else if (cmDays.has(key)) {
+      // CM contează 8h indiferent dacă ziua era liberă sau lucrătoare
       oreCmLuna += 8;
     } else if (sh && (sh.type === 'zi' || sh.type === 'noapte')) {
       oreLucrate += oreZi;
