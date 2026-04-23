@@ -7,12 +7,21 @@
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#1D9E75" />
   <link rel="stylesheet" href="style.css" />
+
+  <!-- ===== Google Analytics 4 ===== -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-G2M9C9JKJE"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-G2M9C9JKJE');
+  </script>
 </head>
 <body>
 
   <!-- ===== AUTH OVERLAY ===== -->
   <div id="auth-overlay" class="auth-overlay" style="display:none">
-    <div class="auth-box">
+    <div class="auth-box" id="auth-box-inner">
       <h2 class="auth-title">Calculator Ture</h2>
       <p class="auth-sub">Loghează-te pentru a salva tiparul tău de tură</p>
       <div id="auth-error" class="auth-error" style="display:none"></div>
@@ -44,15 +53,29 @@
       </div>
     </div>
 
+    <!-- Tip tură -->
     <div class="section">
       <label for="tura-type">Tipul de tură</label>
       <select id="tura-type">
-        <option value="12/24-12/48">12/24 – 12/48 (zi, noapte, 2 zile libere)</option>
-        <option value="12/24">12/24 (alternativ zi/noapte)</option>
-        <option value="12/24-24/72">12/24 – 24/72 (zi, noapte, 3 zile libere)</option>
+        <optgroup label="Ture de 12 ore">
+          <option value="12/24-12/48">12/24 – 12/48 (zi, noapte, 2 zile libere)</option>
+          <option value="12/24">12/24 (alternativ zi/noapte)</option>
+          <option value="12/24-24/72">12/24 – 24/72 (zi, noapte, 3 zile libere)</option>
+        </optgroup>
+        <optgroup label="Ture de 8 ore (3 schimburi)">
+          <option value="8/3-dimineata">Schimb fix dimineață (06:00–14:00)</option>
+          <option value="8/3-dupaamiaza">Schimb fix după-amiază (14:00–22:00)</option>
+          <option value="8/3-noapte">Schimb fix noapte (22:00–06:00)</option>
+          <option value="8/3-rotativ">Rotativ 3 schimburi (D→A→N→L→L→L)</option>
+        </optgroup>
+        <optgroup label="Ture de 24 ore">
+          <option value="24/48">24/48 (o zi lucrezi, două ești liber)</option>
+          <option value="24/72">24/72 (o zi lucrezi, trei ești liber)</option>
+        </optgroup>
       </select>
     </div>
 
+    <!-- Sărbători -->
     <div class="section">
       <label>Sărbători vizibile</label>
       <div class="filters">
@@ -62,18 +85,40 @@
       </div>
     </div>
 
+    <!-- CO / CM -->
+    <div class="section">
+      <label>Concedii</label>
+      <div class="co-cm-bar">
+        <button class="co-cm-btn co-btn" id="btn-edit-co">
+          🌴 CO <span class="co-count"></span>
+        </button>
+        <button class="co-cm-btn cm-btn" id="btn-edit-cm">
+          🤒 CM <span class="cm-count"></span>
+        </button>
+        <button class="co-cm-btn clear-btn" id="btn-clear-co">
+          🗑 Șterge tot
+        </button>
+      </div>
+      <div id="edit-hint" class="edit-hint" style="display:none"></div>
+    </div>
+
+    <!-- Calendar -->
     <div class="section">
       <p class="info" id="start-info">Apasă pe o zi de tură de ZI pentru a seta tiparul.</p>
+      <p id="nav-notice" style="display:none"></p>
       <div class="cal-header">
         <button id="prev-month">&#8592;</button>
         <span id="month-label"></span>
         <button id="next-month">&#8594;</button>
       </div>
       <div class="cal-grid" id="cal"></div>
+
       <div class="legend-shifts">
         <div class="leg-item"><div class="leg-dot leg-zi"></div>Zi</div>
         <div class="leg-item"><div class="leg-dot leg-noapte"></div>Noapte</div>
         <div class="leg-item"><div class="leg-dot leg-liber"></div>Liber</div>
+        <div class="leg-item"><div class="leg-dot leg-co"></div>CO</div>
+        <div class="leg-item"><div class="leg-dot leg-cm"></div>CM</div>
         <div class="leg-item"><span class="leg-text ort">Portocaliu</span>&nbsp;= Ortodox</div>
         <div class="leg-item"><span class="leg-text iud">Mov</span>&nbsp;= Iudaic</div>
         <div class="leg-item"><span class="leg-text isl">Verde</span>&nbsp;= Islamic</div>
@@ -81,8 +126,9 @@
       </div>
     </div>
 
+    <!-- Stats -->
     <div class="stats">
-      <div class="stat"><div class="stat-val" id="ore-lucrate">—</div><div class="stat-lbl">ore lucrate luna asta</div></div>
+      <div class="stat"><div class="stat-val" id="ore-lucrate">—</div><div class="stat-lbl">ore pontate luna asta</div></div>
       <div class="stat"><div class="stat-val" id="norma">—</div><div class="stat-lbl">norma lunii (ore)</div></div>
       <div class="stat"><div class="stat-val" id="ore-extra">—</div><div class="stat-lbl">ore extra / minus</div></div>
     </div>
@@ -90,6 +136,7 @@
     <button id="pwa-install-btn" class="pwa-btn" style="display:none">
       📱 Instalează aplicația pe telefon
     </button>
+
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -99,5 +146,6 @@
       navigator.serviceWorker.register('/calculator-ture/sw.js');
     }
   </script>
+
 </body>
 </html>
