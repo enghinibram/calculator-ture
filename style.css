@@ -210,6 +210,50 @@ select {
 }
 select:focus { outline: none; border-color: var(--accent); }
 
+/* ===== Custom Panel ===== */
+.custom-panel {
+  background: var(--bg-info);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+  border-left: 3px solid var(--accent);
+}
+
+.custom-ore-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.custom-ore-input {
+  width: 72px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  background: var(--bg-input);
+  color: var(--text-main);
+  text-align: center;
+}
+.custom-ore-input:focus { outline: none; border-color: var(--accent); }
+
+.custom-ore-label {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.custom-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* Zilele custom clickable au un mic indiciu vizual */
+.day.custom-clickable { cursor: pointer; }
+.day.custom-clickable:hover { border-color: var(--accent) !important; }
+
 /* ===== Filter Buttons ===== */
 .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .filter-btn {
@@ -248,7 +292,6 @@ select:focus { outline: none; border-color: var(--accent); }
 
 .co-cm-btn:hover { background: var(--bg-stat); }
 
-/* Activ CO */
 .co-cm-btn.active-edit-co,
 .co-cm-btn.co-btn.active-edit-co {
   background: var(--co-bg);
@@ -257,7 +300,6 @@ select:focus { outline: none; border-color: var(--accent); }
   box-shadow: 0 0 0 2px var(--co-border);
 }
 
-/* Activ CM */
 .co-cm-btn.active-edit-cm,
 .co-cm-btn.cm-btn.active-edit-cm {
   background: var(--cm-bg);
@@ -266,7 +308,6 @@ select:focus { outline: none; border-color: var(--accent); }
   box-shadow: 0 0 0 2px var(--cm-border);
 }
 
-/* Buton ștergere */
 .co-cm-btn.clear-btn {
   color: #e53e3e;
   border-color: #ffaaaa;
@@ -421,11 +462,56 @@ select:focus { outline: none; border-color: var(--accent); }
 .stat-val { font-size: 22px; font-weight: 700; color: var(--text-main); }
 .stat-lbl { font-size: 10px; color: var(--text-muted); margin-top: 3px; line-height: 1.4; }
 
+/* ===== Action Buttons (Print / PDF / Cafea) ===== */
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  flex: 1;
+  min-width: 90px;
+  padding: 10px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-stat);
+  color: var(--text-main);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: all 0.15s;
+}
+.action-btn:hover { background: var(--border); }
+
+.action-btn.pdf-btn {
+  background: var(--zi-bg);
+  color: var(--zi-text);
+  border-color: #b3d4f5;
+}
+.action-btn.pdf-btn:hover { background: #d0e8f8; }
+[data-theme="dark"] .action-btn.pdf-btn { background: var(--zi-bg); color: var(--zi-text); border-color: #1a4a6e; }
+
+.action-btn.coffee-btn {
+  background: #FFF3E0;
+  color: #7A4000;
+  border-color: #F5A623;
+}
+.action-btn.coffee-btn:hover { background: #ffe8c0; }
+[data-theme="dark"] .action-btn.coffee-btn { background: #2e1f00; color: #f5a623; border-color: #7A3B10; }
+
 /* ===== PWA Install Button ===== */
 .pwa-btn {
   display: block;
   width: 100%;
-  margin-top: 1.25rem;
+  margin-top: 1rem;
   padding: 10px;
   background: var(--accent);
   color: white;
@@ -497,6 +583,72 @@ select:focus { outline: none; border-color: var(--accent); }
   font-size: 12px;
 }
 
+/* ===== PRINT / PDF STYLES ===== */
+@media print {
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+  body {
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .wrap {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    max-width: 100% !important;
+    padding: 1rem !important;
+    margin: 0 !important;
+  }
+
+  /* Ascunde tot ce nu e calendar */
+  .app-header .header-actions,
+  .filters,
+  .co-cm-bar,
+  .edit-hint,
+  .action-buttons,
+  .pwa-btn,
+  #pwa-install-btn,
+  #auth-overlay,
+  #pdf-modal,
+  #user-dropdown,
+  #nav-notice,
+  .cal-header button,
+  #custom-panel {
+    display: none !important;
+  }
+
+  /* Titlu și luna rămân */
+  .app-header { margin-bottom: 0.5rem; }
+  h1 { font-size: 18px !important; }
+
+  /* Calendar */
+  .cal-grid { gap: 2px !important; }
+  .day { min-height: 44px !important; border: 1px solid #eee !important; }
+
+  /* Culori forțate light mode */
+  .day.zi     { background: #E6F1FB !important; color: #0C447C !important; }
+  .day.noapte { background: #EEEDFE !important; color: #3C3289 !important; }
+  .day.liber  { background: #f5f5f5 !important; color: #999 !important; }
+  .day.co     { background: #FFF9C4 !important; color: #7A5800 !important; }
+  .day.cm     { background: #E0F2FE !important; color: #0B4F78 !important; }
+  .day.today  { border: 2px solid #1D9E75 !important; }
+  .day.legal-holiday { border: 1.5px solid #c0392b !important; }
+
+  .stat { background: #f5f5f5 !important; border: 1px solid #ddd !important; }
+  .stats { margin-top: 0.75rem !important; }
+
+  /* Info box */
+  .info { background: #f9f9f9 !important; border-left: 3px solid #1D9E75 !important; }
+
+  /* Legend */
+  .legend-shifts { margin-top: 8px !important; }
+  .leg-zi     { background: #E6F1FB !important; border-color: #0C447C !important; }
+  .leg-noapte { background: #EEEDFE !important; border-color: #3C3289 !important; }
+  .leg-co     { background: #FFF9C4 !important; border-color: #F5C623 !important; }
+  .leg-cm     { background: #E0F2FE !important; border-color: #38BDF8 !important; }
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 420px) {
   body { padding: 0.5rem; }
@@ -506,4 +658,6 @@ select:focus { outline: none; border-color: var(--accent); }
   .stats { gap: 6px; }
   .stat-val { font-size: 18px; }
   .co-cm-bar { gap: 6px; }
+  .action-buttons { gap: 6px; }
+  .action-btn { font-size: 12px; padding: 9px 6px; }
 }

@@ -16,6 +16,8 @@
     gtag('js', new Date());
     gtag('config', 'G-G2M9C9JKJE');
   </script>
+
+
 </head>
 <body>
 
@@ -30,6 +32,19 @@
       <button class="auth-btn" onclick="doLogin()">Intră în cont</button>
       <button class="auth-btn secondary" onclick="doRegister()">Cont nou</button>
       <button class="auth-btn ghost" onclick="closeAuth()">Continuă fără cont</button>
+    </div>
+  </div>
+
+  <!-- ===== PDF EMAIL MODAL ===== -->
+  <div id="pdf-modal" class="auth-overlay" style="display:none">
+    <div class="auth-box">
+      <div style="font-size:36px; text-align:center; margin-bottom:0.5rem;">📄</div>
+      <h2 class="auth-title">Export PDF gratuit</h2>
+      <p class="auth-sub" id="pdf-modal-sub">Introdu adresa ta de email și primești 1 an de export PDF gratuit.</p>
+      <div id="pdf-modal-error" class="auth-error" style="display:none"></div>
+      <input type="email" id="pdf-email-input" placeholder="Email" class="auth-input" />
+      <button class="auth-btn" onclick="confirmPdfEmail()">Activează gratuit</button>
+      <button class="auth-btn ghost" onclick="closePdfModal()">Anulează</button>
     </div>
   </div>
 
@@ -72,7 +87,21 @@
           <option value="24/48">24/48 (o zi lucrezi, două ești liber)</option>
           <option value="24/72">24/72 (o zi lucrezi, trei ești liber)</option>
         </optgroup>
+        <optgroup label="Personalizat">
+          <option value="custom">⚙️ Tură personalizată (bifezi tu zilele)</option>
+        </optgroup>
       </select>
+    </div>
+
+    <!-- Custom panel (apare doar când e selectat "custom") -->
+    <div id="custom-panel" class="section custom-panel" style="display:none">
+      <label>Câte ore are tura ta?</label>
+      <div class="custom-ore-row">
+        <input type="number" id="custom-ore-input" class="custom-ore-input"
+          value="12" min="1" max="24" step="1" />
+        <span class="custom-ore-label">ore / zi lucrătoare</span>
+      </div>
+      <p class="custom-hint">Apasă pe zilele din calendar pentru a marca zilele în care lucrezi. Apasă din nou pentru a anula.</p>
     </div>
 
     <!-- Sărbători -->
@@ -131,6 +160,19 @@
       <div class="stat"><div class="stat-val" id="ore-lucrate">—</div><div class="stat-lbl">ore pontate luna asta</div></div>
       <div class="stat"><div class="stat-val" id="norma">—</div><div class="stat-lbl">norma lunii (ore)</div></div>
       <div class="stat"><div class="stat-val" id="ore-extra">—</div><div class="stat-lbl">ore extra / minus</div></div>
+    </div>
+
+    <!-- ===== BUTOANE DE ACȚIUNE ===== -->
+    <div id="action-buttons" class="action-buttons">
+      <button class="action-btn print-btn" onclick="doPrint()" title="Printează calendarul">
+        🖨️ Print
+      </button>
+      <button class="action-btn pdf-btn" onclick="tryExportPdf()" title="Exportă în PDF">
+        📄 Export PDF
+      </button>
+      <a class="action-btn coffee-btn" href="https://revolut.me/enghin" target="_blank" rel="noopener" title="Oferă o cafea">
+        ☕ O cafea?
+      </a>
     </div>
 
     <button id="pwa-install-btn" class="pwa-btn" style="display:none">

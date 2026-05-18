@@ -164,6 +164,25 @@ const PATTERNS = {
   },
 };
 
+// ===== TURĂ CUSTOM =====
+// customDays: Set de keys (YYYY-M-D) marcate ca lucrătoare
+let customDays = new Set();
+let customOrePerZi = 12; // default
+
+function isCustomMode() {
+  return document.getElementById('tura-type').value === 'custom';
+}
+
+function getCustomOre() {
+  return parseInt(document.getElementById('custom-ore-input')?.value) || 12;
+}
+
+function buildCustomPattern() {
+  // Returnează un pseudo-pattern compatibil cu restul logicii
+  // Nu e folosit direct — getShift e overridden pentru custom
+  return { ore: getCustomOre(), zile: [] };
+}
+
 // ===== Zile libere legale România 2026 =====
 const LEGAL_HOLIDAYS = {
   '2026-1-1':  'Anul Nou',
@@ -236,10 +255,17 @@ function dayDiff(a, b) {
 }
 
 function getPattern() {
-  return PATTERNS[document.getElementById('tura-type').value];
+  const val = document.getElementById('tura-type').value;
+  if (val === 'custom') return null;
+  return PATTERNS[val];
 }
 
 function getShift(dateObj) {
+  if (isCustomMode()) {
+    const key = dayKey(dateObj.getFullYear(), dateObj.getMonth() + 1, dateObj.getDate());
+    if (customDays.has(key)) return { type: 'zi', label: 'Z' };
+    return { type: 'liber', label: '' };
+  }
   if (!startDate) return null;
   const pat  = getPattern();
   const diff = dayDiff(startDate, dateObj);
@@ -248,6 +274,7 @@ function getShift(dateObj) {
 }
 
 function getOrePerZi() {
+  if (isCustomMode()) return getCustomOre();
   return getPattern().ore;
 }
 
@@ -276,11 +303,13 @@ async function saveSettings() {
     ? `${startDate.getFullYear()}-${String(startDate.getMonth()+1).padStart(2,'0')}-${String(startDate.getDate()).padStart(2,'0')}`
     : null;
   await sb.from('user_settings').upsert({
-    user_id:    currentUser.id,
-    start_date: startStr,
-    tura_type:  turaType,
-    co_days:    serializeSet(coDays),
-    cm_days:    serializeSet(cmDays),
+    user_id:     currentUser.id,
+    start_date:  startStr,
+    tura_type:   turaType,
+    co_days:     serializeSet(coDays),
+    cm_days:     serializeSet(cmDays),
+    custom_days: serializeSet(customDays),
+    custom_ore:  getCustomOre(),
   }, { onConflict: 'user_id' });
 }
 
@@ -293,7 +322,10 @@ async function loadSettings() {
     .eq('user_id', currentUser.id)
     .single();
   if (data) {
-    if (data.tura_type) document.getElementById('tura-type').value = data.tura_type;
+    if (data.tura_type) {
+      document.getElementById('tura-type').value = data.tura_type;
+      updateTuraTypeUI();
+    }
     if (data.start_date) {
       const parts = data.start_date.split('-');
       startDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
@@ -302,8 +334,13 @@ async function loadSettings() {
         startDate.toLocaleDateString('ro-RO', { weekday: 'long', day: 'numeric', month: 'long' }) +
         ' · tiparul merge în ambele direcții';
     }
-    if (data.co_days) coDays = deserializeSet(data.co_days);
-    if (data.cm_days) cmDays = deserializeSet(data.cm_days);
+    if (data.co_days)     coDays     = deserializeSet(data.co_days);
+    if (data.cm_days)     cmDays     = deserializeSet(data.cm_days);
+    if (data.custom_days) customDays = deserializeSet(data.custom_days);
+    if (data.custom_ore) {
+      const inp = document.getElementById('custom-ore-input');
+      if (inp) inp.value = data.custom_ore;
+    }
   }
   recalc();
 }
@@ -333,24 +370,28 @@ function updateEditModeUI() {
 
 // ===== Click pe zi =====
 function handleDayClick(y, m, d) {
-  const dateObj = new Date(y, m, d);
   const key = dayKey(y, m + 1, d);
 
   if (editMode === 'co') {
-    // ✅ CO se poate marca pe orice zi — inclusiv zilele libere
     if (cmDays.has(key)) cmDays.delete(key);
     coDays.has(key) ? coDays.delete(key) : coDays.add(key);
     recalc(); saveSettings(); return;
   }
 
   if (editMode === 'cm') {
-    // ✅ CM se poate marca pe orice zi — inclusiv zilele libere
     if (coDays.has(key)) coDays.delete(key);
     cmDays.has(key) ? cmDays.delete(key) : cmDays.add(key);
     recalc(); saveSettings(); return;
   }
 
-  // Click normal → setare start tură (doar dacă nu e mod editare)
+  // Custom mode: click = toggle zi lucrătoare
+  if (isCustomMode()) {
+    if (coDays.has(key) || cmDays.has(key)) return; // nu suprascrie CO/CM
+    customDays.has(key) ? customDays.delete(key) : customDays.add(key);
+    recalc(); saveSettings(); return;
+  }
+
+  // Click normal → setare start tură
   setStart(y, m, d);
 }
 
@@ -364,6 +405,298 @@ function setStart(y, m, d) {
   recalc();
   saveSettings();
 }
+
+// ===== UI pentru tipul de tură (afișare custom panel) =====
+function updateTuraTypeUI() {
+  const val = document.getElementById('tura-type').value;
+  const customPanel = document.getElementById('custom-panel');
+  const startInfo   = document.getElementById('start-info');
+  if (val === 'custom') {
+    customPanel.style.display = 'block';
+    startInfo.textContent = '👆 Bifează zilele în care lucrezi apăsând pe ele în calendar.';
+  } else {
+    customPanel.style.display = 'none';
+    if (!startDate) {
+      startInfo.textContent = 'Apasă pe o zi de tură de ZI pentru a seta tiparul.';
+    }
+  }
+}
+
+// ===== Recalculare =====
+function recalc() {
+  const year  = viewYear;
+  const month = viewMonth;
+  const days  = new Date(year, month + 1, 0).getDate();
+  const oreZi = getOrePerZi();
+  let oreLucrate = 0;
+  let oreCoLuna  = 0;
+  let oreCmLuna  = 0;
+
+  for (let d = 1; d <= days; d++) {
+    const dateObj = new Date(year, month, d);
+    const sh  = getShift(dateObj);
+    const key = dayKey(year, month + 1, d);
+
+    if (coDays.has(key)) {
+      oreCoLuna += 8;
+    } else if (cmDays.has(key)) {
+      oreCmLuna += 8;
+    } else if (sh && (sh.type === 'zi' || sh.type === 'noapte')) {
+      oreLucrate += oreZi;
+    }
+  }
+
+  const totalPontat = oreLucrate + oreCoLuna + oreCmLuna;
+  const norma = getNorma(year, month);
+  const extra = totalPontat - norma;
+
+  const showStats = isCustomMode() || !!startDate;
+  if (showStats) {
+    document.getElementById('ore-lucrate').textContent = totalPontat;
+    document.getElementById('norma').textContent       = norma;
+    const elExtra = document.getElementById('ore-extra');
+    elExtra.textContent = (extra >= 0 ? '+' : '') + extra;
+    elExtra.style.color = extra >= 0 ? '#1D9E75' : '#e53e3e';
+  }
+
+  updateCoBadge();
+  renderCal();
+}
+
+function updateCoBadge() {
+  const totalCo = coDays.size;
+  const totalCm = cmDays.size;
+  const spCo = document.querySelector('#btn-edit-co .co-count');
+  const spCm = document.querySelector('#btn-edit-cm .cm-count');
+  if (spCo) spCo.textContent = totalCo > 0 ? ` · ${totalCo}z` : '';
+  if (spCm) spCm.textContent = totalCm > 0 ? ` · ${totalCm}z` : '';
+}
+
+// ===== Render calendar =====
+function renderCal() {
+  const year  = viewYear;
+  const month = viewMonth;
+
+  const lbl = new Date(year, month, 1).toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' });
+  document.getElementById('month-label').textContent = lbl.charAt(0).toUpperCase() + lbl.slice(1);
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const offset   = firstDay === 0 ? 6 : firstDay - 1;
+  const days     = new Date(year, month + 1, 0).getDate();
+  const names    = ['Lu', 'Ma', 'Mi', 'Jo', 'Vi', 'Sâ', 'Du'];
+
+  let html = names.map(n => `<div class="cal-day-name">${n}</div>`).join('');
+  for (let i = 0; i < offset; i++) html += '<div class="day empty"></div>';
+
+  for (let d = 1; d <= days; d++) {
+    const dateObj = new Date(year, month, d);
+    const sh      = getShift(dateObj);
+    const hol     = getHoliday(year, month + 1, d);
+    const legal   = getLegalHoliday(year, month + 1, d);
+    const isToday = dateObj.toDateString() === today.toDateString();
+    const isStart = startDate && dateObj.toDateString() === startDate.toDateString();
+    const key     = dayKey(year, month + 1, d);
+    const isCo    = coDays.has(key);
+    const isCm    = cmDays.has(key);
+
+    let cls = 'day';
+    if (isCo)       cls += ' co';
+    else if (isCm)  cls += ' cm';
+    else if (sh)    cls += ' ' + sh.type;
+    else            cls += ' liber';
+
+    if (isToday) cls += ' today';
+    if (isStart) cls += ' start-sel';
+    if (legal)   cls += ' legal-holiday';
+
+    // În mod custom, zilele lucrătoare au cursor diferit
+    if (isCustomMode() && !isCo && !isCm) cls += ' custom-clickable';
+
+    const badge    = (!isCo && !isCm && sh && sh.label) ? `<span class="shift-badge">${sh.label}</span>` : '';
+    const coBadge  = isCo ? `<span class="hol-name hol-co">CO</span>` : '';
+    const cmBadge  = isCm ? `<span class="hol-name hol-cm">CM</span>` : '';
+    const legalBdg = legal ? `<span class="hol-name hol-legal" title="${legal}">ZL</span>` : '';
+    const holHtml  = hol   ? `<span class="hol-name hol-${hol.type}">${hol.name}</span>` : '';
+
+    html += `<div class="${cls}" data-y="${year}" data-m="${month}" data-d="${d}">${d}${badge}${coBadge}${cmBadge}${legalBdg}${holHtml}</div>`;
+  }
+
+  document.getElementById('cal').innerHTML = html;
+  document.getElementById('cal').querySelectorAll('.day:not(.empty)').forEach(el => {
+    el.addEventListener('click', () => {
+      handleDayClick(parseInt(el.dataset.y), parseInt(el.dataset.m), parseInt(el.dataset.d));
+    });
+  });
+}
+
+// ===== Navigare luni =====
+function changeMonth(dir) {
+  viewMonth += dir;
+  if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+  if (viewMonth < 0)  { viewMonth = 11; viewYear--; }
+  recalc();
+}
+
+// ===== Toggle filtre =====
+function toggleFilter(type) {
+  filters[type] = !filters[type];
+  const btn = document.getElementById('btn-' + type);
+  btn.className = filters[type] ? 'filter-btn active-' + type : 'filter-btn';
+  recalc();
+}
+
+// ===== PRINT =====
+function doPrint() {
+  window.print();
+}
+
+// ===== PDF FREEMIUM =====
+// Logică: fără cont → 1 lună gratuit în sesiune (localStorage)
+// Cu email înregistrat → nelimitat
+
+const PDF_FREE_KEY = 'ture-pdf-used';
+const PDF_EMAIL_KEY = 'ture-pdf-email';
+const PDF_DATE_KEY  = 'ture-pdf-date';
+
+function canExportPdfFree() {
+  // Dacă e logat → mereu poate
+  if (currentUser) return true;
+  // Dacă a dat email și e în termenul de 1 lună
+  const email = localStorage.getItem(PDF_EMAIL_KEY);
+  const dateStr = localStorage.getItem(PDF_DATE_KEY);
+  if (email && dateStr) {
+    const regDate = new Date(dateStr);
+    const now = new Date();
+    const diffDays = (now - regDate) / (1000 * 60 * 60 * 24);
+    if (diffDays <= 30) return true;
+    return false; // expirat
+  }
+  return false;
+}
+
+function isPdfEmailRegistered() {
+  return !!localStorage.getItem(PDF_EMAIL_KEY);
+}
+
+function registerPdfEmail(email) {
+  localStorage.setItem(PDF_EMAIL_KEY, email);
+  localStorage.setItem(PDF_DATE_KEY, new Date().toISOString());
+}
+
+async function savePdfEmailToSupabase(email) {
+  try {
+    await sb.from('pdf_subscribers').upsert({ email, registered_at: new Date().toISOString() }, { onConflict: 'email' });
+  } catch(e) { /* non-critical */ }
+}
+
+function tryExportPdf() {
+  if (currentUser) {
+    // Logat → export direct
+    generateAndDownloadPdf();
+    return;
+  }
+
+  if (canExportPdfFree()) {
+    generateAndDownloadPdf();
+    return;
+  }
+
+  // Arată modal de înregistrare email
+  showPdfModal();
+}
+
+function showPdfModal() {
+  const alreadyExpired = isPdfEmailRegistered();
+  document.getElementById('pdf-modal').style.display = 'flex';
+  const sub = document.getElementById('pdf-modal-sub');
+  if (alreadyExpired) {
+    sub.textContent = 'Luna ta gratuită a expirat. Înregistrează-te cu emailul pentru un an întreg de export PDF gratuit.';
+  } else {
+    sub.textContent = 'Introdu adresa ta de email și primești 1 an de export PDF gratuit.';
+  }
+}
+
+function closePdfModal() {
+  document.getElementById('pdf-modal').style.display = 'none';
+}
+
+async function confirmPdfEmail() {
+  const email = document.getElementById('pdf-email-input').value.trim();
+  if (!email || !email.includes('@')) {
+    document.getElementById('pdf-modal-error').textContent = 'Te rog introdu un email valid.';
+    document.getElementById('pdf-modal-error').style.display = 'block';
+    return;
+  }
+  registerPdfEmail(email);
+  await savePdfEmailToSupabase(email);
+  closePdfModal();
+  generateAndDownloadPdf();
+}
+
+function generateAndDownloadPdf() {
+  // Folosim print-to-PDF nativ — zero dependențe, zero erori
+  // Setăm temporar light mode pentru print corect
+  const currentTheme = document.documentElement.getAttribute('data-theme');
+  document.documentElement.setAttribute('data-theme', 'light');
+  document.body.classList.add('printing-pdf');
+
+  setTimeout(() => {
+    window.print();
+    // Restaurăm tema după ce dialogul de print s-a deschis
+    setTimeout(() => {
+      document.documentElement.setAttribute('data-theme', currentTheme);
+      document.body.classList.remove('printing-pdf');
+    }, 500);
+  }, 100);
+}
+
+// ===== Event Listeners =====
+document.getElementById('tura-type').addEventListener('change', () => {
+  updateTuraTypeUI();
+  recalc();
+  saveSettings();
+});
+
+document.getElementById('prev-month').addEventListener('click', () => changeMonth(-1));
+document.getElementById('next-month').addEventListener('click', () => changeMonth(1));
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => toggleFilter(btn.dataset.type));
+});
+document.getElementById('btn-edit-co').addEventListener('click', () => setEditMode('co'));
+document.getElementById('btn-edit-cm').addEventListener('click', () => setEditMode('cm'));
+document.getElementById('btn-clear-co').addEventListener('click', () => {
+  if (coDays.size === 0 && cmDays.size === 0) return;
+  if (!confirm('Ștergi toate zilele de CO și CM marcate?')) return;
+  coDays.clear(); cmDays.clear();
+  editMode = null; updateEditModeUI();
+  recalc(); saveSettings();
+});
+
+// Custom ore input
+document.addEventListener('DOMContentLoaded', () => {
+  const oreInput = document.getElementById('custom-ore-input');
+  if (oreInput) {
+    oreInput.addEventListener('change', () => {
+      recalc();
+      saveSettings();
+    });
+  }
+});
+
+// ===== PWA Install =====
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('pwa-install-btn').style.display = 'block';
+});
+document.getElementById('pwa-install-btn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') document.getElementById('pwa-install-btn').style.display = 'none';
+  deferredPrompt = null;
+});
 
 // ===== Auth UI =====
 function openAuth() {
@@ -428,7 +761,9 @@ function closeDropdown() {
 document.addEventListener('click', (e) => {
   const dd  = document.getElementById('user-dropdown');
   const btn = document.getElementById('login-btn');
+  const modal = document.getElementById('pdf-modal');
   if (!dd.contains(e.target) && !btn.contains(e.target)) closeDropdown();
+  if (modal && e.target === modal) closePdfModal();
 });
 
 // ===== Update UI după auth =====
@@ -465,159 +800,6 @@ function updateUserBar(user) {
   }
 }
 
-// ===== Recalculare =====
-function recalc() {
-  const year  = viewYear;
-  const month = viewMonth;
-  const days  = new Date(year, month + 1, 0).getDate();
-  const oreZi = getOrePerZi();
-  let oreLucrate = 0;
-  let oreCoLuna  = 0;
-  let oreCmLuna  = 0;
-
-  for (let d = 1; d <= days; d++) {
-    const dateObj = new Date(year, month, d);
-    const sh  = getShift(dateObj);
-    const key = dayKey(year, month + 1, d);
-
-    if (coDays.has(key)) {
-      // CO contează 8h indiferent dacă ziua era liberă sau lucrătoare
-      oreCoLuna += 8;
-    } else if (cmDays.has(key)) {
-      // CM contează 8h indiferent dacă ziua era liberă sau lucrătoare
-      oreCmLuna += 8;
-    } else if (sh && (sh.type === 'zi' || sh.type === 'noapte')) {
-      oreLucrate += oreZi;
-    }
-  }
-
-  const totalPontat = oreLucrate + oreCoLuna + oreCmLuna;
-  const norma = getNorma(year, month);
-  const extra = totalPontat - norma;
-
-  if (startDate) {
-    document.getElementById('ore-lucrate').textContent = totalPontat;
-    document.getElementById('norma').textContent       = norma;
-    const elExtra = document.getElementById('ore-extra');
-    elExtra.textContent = (extra >= 0 ? '+' : '') + extra;
-    elExtra.style.color = extra >= 0 ? '#1D9E75' : '#e53e3e';
-  }
-
-  updateCoBadge();
-  renderCal();
-}
-
-function updateCoBadge() {
-  const totalCo = coDays.size;
-  const totalCm = cmDays.size;
-  const spCo = document.querySelector('#btn-edit-co .co-count');
-  const spCm = document.querySelector('#btn-edit-cm .cm-count');
-  if (spCo) spCo.textContent = totalCo > 0 ? ` · ${totalCo}z` : '';
-  if (spCm) spCm.textContent = totalCm > 0 ? ` · ${totalCm}z` : '';
-}
-
-// ===== Render calendar =====
-function renderCal() {
-  const year  = viewYear;
-  const month = viewMonth;
-
-  const lbl = new Date(year, month, 1).toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' });
-  document.getElementById('month-label').textContent = lbl.charAt(0).toUpperCase() + lbl.slice(1);
-
-  const firstDay = new Date(year, month, 1).getDay();
-  const offset   = firstDay === 0 ? 6 : firstDay - 1;
-  const days     = new Date(year, month + 1, 0).getDate();
-  const names    = ['Lu', 'Ma', 'Mi', 'Jo', 'Vi', 'Sâ', 'Du'];
-
-  let html = names.map(n => `<div class="cal-day-name">${n}</div>`).join('');
-  for (let i = 0; i < offset; i++) html += '<div class="day empty"></div>';
-
-  for (let d = 1; d <= days; d++) {
-    const dateObj = new Date(year, month, d);
-    const sh      = getShift(dateObj);
-    const hol     = getHoliday(year, month + 1, d);
-    const legal   = getLegalHoliday(year, month + 1, d);
-    const isToday = dateObj.toDateString() === today.toDateString();
-    const isStart = startDate && dateObj.toDateString() === startDate.toDateString();
-    const key     = dayKey(year, month + 1, d);
-    const isCo    = coDays.has(key);
-    const isCm    = cmDays.has(key);
-
-    let cls = 'day';
-    if (isCo)       cls += ' co';
-    else if (isCm)  cls += ' cm';
-    else if (sh)    cls += ' ' + sh.type;
-    else            cls += ' liber';
-
-    if (isToday) cls += ' today';
-    if (isStart) cls += ' start-sel';
-    if (legal)   cls += ' legal-holiday';
-
-    const badge    = (!isCo && !isCm && sh && sh.label) ? `<span class="shift-badge">${sh.label}</span>` : '';
-    const coBadge  = isCo ? `<span class="hol-name hol-co">CO</span>` : '';
-    const cmBadge  = isCm ? `<span class="hol-name hol-cm">CM</span>` : '';
-    const legalBdg = legal ? `<span class="hol-name hol-legal" title="${legal}">ZL</span>` : '';
-    const holHtml  = hol   ? `<span class="hol-name hol-${hol.type}">${hol.name}</span>` : '';
-
-    html += `<div class="${cls}" data-y="${year}" data-m="${month}" data-d="${d}">${d}${badge}${coBadge}${cmBadge}${legalBdg}${holHtml}</div>`;
-  }
-
-  document.getElementById('cal').innerHTML = html;
-  document.getElementById('cal').querySelectorAll('.day:not(.empty)').forEach(el => {
-    el.addEventListener('click', () => {
-      handleDayClick(parseInt(el.dataset.y), parseInt(el.dataset.m), parseInt(el.dataset.d));
-    });
-  });
-}
-
-// ===== Navigare luni =====
-function changeMonth(dir) {
-  viewMonth += dir;
-  if (viewMonth > 11) { viewMonth = 0; viewYear++; }
-  if (viewMonth < 0)  { viewMonth = 11; viewYear--; }
-  recalc();
-}
-
-// ===== Toggle filtre =====
-function toggleFilter(type) {
-  filters[type] = !filters[type];
-  const btn = document.getElementById('btn-' + type);
-  btn.className = filters[type] ? 'filter-btn active-' + type : 'filter-btn';
-  recalc();
-}
-
-// ===== Event Listeners =====
-document.getElementById('tura-type').addEventListener('change', () => { recalc(); saveSettings(); });
-document.getElementById('prev-month').addEventListener('click', () => changeMonth(-1));
-document.getElementById('next-month').addEventListener('click', () => changeMonth(1));
-document.querySelectorAll('.filter-btn').forEach(btn => {
-  btn.addEventListener('click', () => toggleFilter(btn.dataset.type));
-});
-document.getElementById('btn-edit-co').addEventListener('click', () => setEditMode('co'));
-document.getElementById('btn-edit-cm').addEventListener('click', () => setEditMode('cm'));
-document.getElementById('btn-clear-co').addEventListener('click', () => {
-  if (coDays.size === 0 && cmDays.size === 0) return;
-  if (!confirm('Ștergi toate zilele de CO și CM marcate?')) return;
-  coDays.clear(); cmDays.clear();
-  editMode = null; updateEditModeUI();
-  recalc(); saveSettings();
-});
-
-// ===== PWA Install =====
-let deferredPrompt = null;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  document.getElementById('pwa-install-btn').style.display = 'block';
-});
-document.getElementById('pwa-install-btn').addEventListener('click', async () => {
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  const { outcome } = await deferredPrompt.userChoice;
-  if (outcome === 'accepted') document.getElementById('pwa-install-btn').style.display = 'none';
-  deferredPrompt = null;
-});
-
 // ===== Auth State =====
 sb.auth.onAuthStateChange(async (event, session) => {
   const user = session?.user ?? null;
@@ -626,4 +808,5 @@ sb.auth.onAuthStateChange(async (event, session) => {
 });
 
 // ===== Init =====
+updateTuraTypeUI();
 recalc();
