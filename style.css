@@ -702,3 +702,8 @@ select:focus { outline: none; border-color: var(--accent); }
 @media print {
   .seo-section { display: none !important; }
 }
+
+.article-links { padding-left: 1.2rem; margin-top: 0.5rem; }
+.article-links li { margin-bottom: 0.4rem; }
+.article-links a { color: var(--accent); text-decoration: none; font-size: 13px; }
+.article-links a:hover { text-decoration: underline; }
