@@ -698,7 +698,48 @@ document.getElementById('pwa-install-btn').addEventListener('click', async () =>
   deferredPrompt = null;
 });
 
-// ===== Auth UI =====
+// ===== Reset Parolă =====
+function showResetPassword() {
+  document.getElementById('auth-overlay').style.display = 'none';
+  document.getElementById('reset-email').value = document.getElementById('auth-email').value || '';
+  document.getElementById('reset-error').style.display = 'none';
+  document.getElementById('reset-sub').textContent = 'Introdu emailul cu care te-ai înregistrat și îți trimitem un link de resetare.';
+  document.getElementById('reset-overlay').style.display = 'flex';
+}
+
+function closeResetPassword() {
+  document.getElementById('reset-overlay').style.display = 'none';
+  document.getElementById('auth-overlay').style.display = 'flex';
+}
+
+async function doResetPassword() {
+  const email = document.getElementById('reset-email').value.trim();
+  const errEl = document.getElementById('reset-error');
+  errEl.style.display = 'none';
+
+  if (!email || !email.includes('@')) {
+    errEl.textContent = 'Te rog introdu un email valid.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname,
+  });
+
+  if (error) {
+    errEl.textContent = 'Eroare la trimitere. Încearcă din nou.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  // Succes
+  document.getElementById('reset-sub').textContent = '✅ Email trimis! Verifică inbox-ul (și folderul Spam). Linkul e valabil 1 oră.';
+  document.getElementById('reset-email').style.display = 'none';
+  document.querySelector('#reset-overlay .auth-btn:not(.ghost)').style.display = 'none';
+}
+
+
 function openAuth() {
   closeDropdown();
   document.getElementById('auth-overlay').style.display = 'flex';
@@ -808,5 +849,63 @@ sb.auth.onAuthStateChange(async (event, session) => {
 });
 
 // ===== Init =====
+// Detectează dacă utilizatorul vine dintr-un link de reset parolă
+(function checkPasswordReset() {
+  const hash = window.location.hash;
+  if (hash.includes('type=recovery')) {
+    // Supabase a pus sesiunea de recovery automat — afișăm form de parolă nouă
+    setTimeout(() => showNewPasswordForm(), 300);
+  }
+})();
+
+function showNewPasswordForm() {
+  document.getElementById('auth-overlay').style.display = 'flex';
+  document.getElementById('auth-box-inner').innerHTML = `
+    <div style="font-size:36px; text-align:center; margin-bottom:0.5rem;">🔐</div>
+    <h2 class="auth-title">Parolă nouă</h2>
+    <p class="auth-sub">Alege o parolă nouă pentru contul tău.</p>
+    <div id="newpass-error" class="auth-error" style="display:none"></div>
+    <input type="password" id="new-pass-1" placeholder="Parolă nouă" class="auth-input" />
+    <input type="password" id="new-pass-2" placeholder="Confirmă parola" class="auth-input" />
+    <button class="auth-btn" onclick="doSetNewPassword()">Salvează parola nouă</button>
+  `;
+}
+
+async function doSetNewPassword() {
+  const p1 = document.getElementById('new-pass-1').value;
+  const p2 = document.getElementById('new-pass-2').value;
+  const errEl = document.getElementById('newpass-error');
+  errEl.style.display = 'none';
+
+  if (p1.length < 6) {
+    errEl.textContent = 'Parola trebuie să aibă minim 6 caractere.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (p1 !== p2) {
+    errEl.textContent = 'Parolele nu coincid.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const { error } = await sb.auth.updateUser({ password: p1 });
+  if (error) {
+    errEl.textContent = 'Eroare la salvare. Încearcă din nou.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  document.getElementById('auth-box-inner').innerHTML = `
+    <div style="text-align:center; padding: 0.5rem 0;">
+      <div style="font-size:48px; margin-bottom:1rem;">✅</div>
+      <h2 class="auth-title" style="margin-bottom:0.75rem;">Parolă salvată!</h2>
+      <p class="auth-sub" style="margin-bottom:1.25rem;">Te-ai autentificat automat. Bine ai revenit!</p>
+      <button class="auth-btn" onclick="closeAuth()">Hai la treabă!</button>
+    </div>
+  `;
+  // Curăță hash-ul din URL
+  history.replaceState(null, '', window.location.pathname);
+}
+
 updateTuraTypeUI();
 recalc();

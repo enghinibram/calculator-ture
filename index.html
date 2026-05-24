@@ -3,12 +3,96 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Calculator Ture</title>
+
+  <!-- SEO Title & Description -->
+  <title>Calculator Ture Schimburi 2026 | Program Lucru Gratuit</title>
+  <meta name="description" content="Calculator gratuit pentru ture și schimburi de lucru. Calculează ore pontate, norma lunii, concediu CO/CM și ore suplimentare. Ideal pentru port, spital, poliție, jandarmerie." />
+  <meta name="keywords" content="calculator ture, calculator schimburi, program lucru schimburi, pontaj ture, calculator ore suplimentare, ture 12/24, ture 24/48" />
+  <link rel="canonical" href="https://calculatorture.ro/" />
+
+  <!-- Open Graph (Facebook, WhatsApp share) -->
+  <meta property="og:title" content="Calculator Ture Schimburi 2026 | Gratuit" />
+  <meta property="og:description" content="Calculează-ți orele de muncă, norma lunii și concediile direct în browser. Gratuit, fără instalare." />
+  <meta property="og:url" content="https://calculatorture.ro/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="ro_RO" />
+
+  <!-- Schema markup — SoftwareApplication -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Calculator Ture Schimburi",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web, Android, iOS",
+    "description": "Calculator gratuit pentru lucrătorii în schimburi. Calculează ore pontate, norma lunii, ore suplimentare, concediu CO și CM pentru orice tip de tură: 12/24, 24/48, 8 ore rotativ și altele.",
+    "url": "https://calculatorture.ro/",
+    "inLanguage": "ro",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "RON"
+    },
+    "featureList": [
+      "Calcul ture 12/24, 12/48, 24/48, 24/72",
+      "Norma oficială ore/lună 2025–2026",
+      "Marcare concediu CO și CM",
+      "Zile libere legale România",
+      "Sărbători ortodoxe, iudaice, islamice",
+      "Export PDF și print",
+      "Mod întunecat",
+      "Instalabil ca aplicație PWA"
+    ]
+  }
+  </script>
+
+  <!-- FAQ Schema — pentru AI și featured snippets -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Cum calculez orele de muncă în ture?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Selectezi tipul de tură (ex. 12/24, 24/48), alegi ziua de start și calculatorul generează automat programul pe orice lună. Orele pontate se compară cu norma oficială a lunii."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Care este norma de ore pentru 2026?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Norma variază în funcție de lună. Exemplu: ianuarie 2026 — 144 ore, februarie — 160 ore, martie — 176 ore. Calculatorul folosește normele oficiale conform legislației române."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Pot marca zilele de concediu CO sau CM?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Da. Apasă pe butonul CO sau CM, apoi pe zilele dorite din calendar. Fiecare zi de concediu se calculează cu 8 ore conform Codului Muncii, indiferent de tipul de tură."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Funcționează calculatorul offline?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Da. Calculator Ture poate fi instalat ca aplicație PWA pe telefon sau calculator și funcționează fără conexiune la internet după prima încărcare."
+        }
+      }
+    ]
+  }
+  </script>
+
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#1D9E75" />
   <link rel="stylesheet" href="style.css" />
 
-  <!-- ===== Google Analytics 4 ===== -->
+  <!-- Google Analytics 4 -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-G2M9C9JKJE"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -16,8 +100,6 @@
     gtag('js', new Date());
     gtag('config', 'G-G2M9C9JKJE');
   </script>
-
-
 </head>
 <body>
 
@@ -29,9 +111,25 @@
       <div id="auth-error" class="auth-error" style="display:none"></div>
       <input type="email" id="auth-email" placeholder="Email" class="auth-input" />
       <input type="password" id="auth-pass" placeholder="Parolă" class="auth-input" />
+      <div style="text-align:right; margin-top:-4px;">
+        <button class="auth-btn ghost" style="font-size:11px; padding:0;" onclick="showResetPassword()">Ai uitat parola?</button>
+      </div>
       <button class="auth-btn" onclick="doLogin()">Intră în cont</button>
       <button class="auth-btn secondary" onclick="doRegister()">Cont nou</button>
       <button class="auth-btn ghost" onclick="closeAuth()">Continuă fără cont</button>
+    </div>
+  </div>
+
+  <!-- ===== RESET PAROLĂ MODAL ===== -->
+  <div id="reset-overlay" class="auth-overlay" style="display:none">
+    <div class="auth-box">
+      <div style="font-size:36px; text-align:center; margin-bottom:0.5rem;">🔑</div>
+      <h2 class="auth-title">Resetare parolă</h2>
+      <p class="auth-sub" id="reset-sub">Introdu emailul cu care te-ai înregistrat și îți trimitem un link de resetare.</p>
+      <div id="reset-error" class="auth-error" style="display:none"></div>
+      <input type="email" id="reset-email" placeholder="Email" class="auth-input" />
+      <button class="auth-btn" onclick="doResetPassword()">Trimite link de resetare</button>
+      <button class="auth-btn ghost" onclick="closeResetPassword()">Înapoi la login</button>
     </div>
   </div>
 
@@ -170,7 +268,7 @@
       <button class="action-btn pdf-btn" onclick="tryExportPdf()" title="Exportă în PDF">
         📄 Export PDF
       </button>
-      <a class="action-btn coffee-btn" href="https://revolut.me/enghin_i" target="_blank" rel="noopener" title="Oferă o cafea">
+      <a class="action-btn coffee-btn" href="https://revolut.me/enghin" target="_blank" rel="noopener" title="Oferă o cafea">
         ☕ O cafea?
       </a>
     </div>
