@@ -661,3 +661,44 @@ select:focus { outline: none; border-color: var(--accent); }
   .action-buttons { gap: 6px; }
   .action-btn { font-size: 12px; padding: 9px 6px; }
 }
+
+/* ===== SEO Section ===== */
+.seo-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.seo-section h2 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-top: 1.25rem;
+  margin-bottom: 0.4rem;
+}
+
+.seo-section h2:first-child {
+  margin-top: 0;
+}
+
+.seo-section p {
+  margin-bottom: 0.5rem;
+}
+
+.faq-list dt {
+  font-weight: 600;
+  color: var(--text-main);
+  margin-top: 0.75rem;
+}
+
+.faq-list dd {
+  margin-left: 0;
+  color: var(--text-muted);
+}
+
+@media print {
+  .seo-section { display: none !important; }
+}
