@@ -107,15 +107,29 @@
         <input type="number" id="brut" placeholder="ex: 5000" min="0" step="100" />
       </div>
 
-      <div class="input-group">
-        <label>Ore de noapte în luna asta</label>
-        <input type="number" id="ore-noapte" placeholder="ex: 48" min="0" step="1" value="0" />
-      </div>
+     <div class="input-group">
+  <label>Ore de noapte în luna asta</label>
+  <div style="display:flex; gap:10px;">
+    <input type="number" id="ore-noapte" placeholder="ex: 48" min="0" step="1" value="0" style="flex:2" />
+    <div style="flex:1; position:relative;">
+      <input type="number" id="procent-noapte" placeholder="%" min="0" max="100" step="1" value="25" style="width:100%; padding-right:28px;" />
+      <span style="position:absolute; right:10px; top:50%; transform:translateY(-50%); color:#666; font-size:13px; pointer-events:none;">%</span>
+    </div>
+  </div>
+  <small style="color:#999; font-size:11px; margin-top:4px; display:block;">Sporul de noapte implicit e 25% (legal). Modifică dacă firma ta aplică alt procent.</small>
+</div>
 
-      <div class="input-group">
-        <label>Ore suplimentare în luna asta</label>
-        <input type="number" id="ore-extra" placeholder="ex: 10" min="0" step="1" value="0" />
-      </div>
+     <div class="input-group">
+  <label>Ore suplimentare în luna asta</label>
+  <div style="display:flex; gap:10px;">
+    <input type="number" id="ore-extra" placeholder="ex: 10" min="0" step="1" value="0" style="flex:2" />
+    <div style="flex:1; position:relative;">
+      <input type="number" id="procent-extra" placeholder="%" min="0" max="200" step="1" value="75" style="width:100%; padding-right:28px;" />
+      <span style="position:absolute; right:10px; top:50%; transform:translateY(-50%); color:#666; font-size:13px; pointer-events:none;">%</span>
+    </div>
+  </div>
+  <small style="color:#999; font-size:11px; margin-top:4px; display:block;">Sporul legal minim e 75%. Modifică dacă firma ta aplică alt procent.</small>
+</div>
 
       <div class="input-group">
         <label>Norma lunii (ore)</label>
@@ -201,8 +215,10 @@
       const tarifOrar = brut / norma;
 
       // Sporuri
-      const sporNoapte = Math.round(oreNoapte * tarifOrar * 0.25 * 100) / 100;
-      const sporExtra = Math.round(oreExtra * tarifOrar * 0.75 * 100) / 100;
+     const procentNoapte = (parseFloat(document.getElementById('procent-noapte').value) || 25) / 100;
+const procentExtra = (parseFloat(document.getElementById('procent-extra').value) || 75) / 100;
+const sporNoapte = Math.round(oreNoapte * tarifOrar * procentNoapte * 100) / 100;
+const sporExtra = Math.round(oreExtra * tarifOrar * procentExtra * 100) / 100;
       const brutTotal = Math.round((brut + sporNoapte + sporExtra) * 100) / 100;
 
       // Contributii
