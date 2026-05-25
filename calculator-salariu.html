@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ro" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculator Salariu Net 2026 — Ture și Schimburi</title>
+  <meta name="description" content="Calculează salariul net din brut în 2026. CAS, CASS, impozit, spor noapte, ore suplimentare. Gratuit, pentru lucrătorii în ture." />
+  <link rel="canonical" href="https://app.calculatorture.ro/calculator-salariu.html" />
+  <link rel="stylesheet" href="article.css" />
+  <style>
+    .calc-card {
+      background: var(--bg-stat, #f5f5f5);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .input-group {
+      margin-bottom: 1rem;
+    }
+    .input-group label {
+      font-size: 13px;
+      color: #666;
+      display: block;
+      margin-bottom: 5px;
+    }
+    .input-group input, .input-group select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 15px;
+      background: #fff;
+    }
+    .calc-btn {
+      width: 100%;
+      padding: 12px;
+      background: #1D9E75;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 0.5rem;
+    }
+    .calc-btn:hover { background: #178060; }
+    .result-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 1rem;
+    }
+    .result-item {
+      background: #fff;
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+      border: 1px solid #eee;
+    }
+    .result-item.highlight {
+      background: #f0faf6;
+      border-color: #1D9E75;
+      grid-column: 1 / -1;
+    }
+    .result-val {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+    .result-item.highlight .result-val {
+      font-size: 28px;
+      color: #1D9E75;
+    }
+    .result-lbl {
+      font-size: 11px;
+      color: #666;
+      margin-top: 3px;
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid #eee;
+      margin: 1.5rem 0;
+    }
+    .info-box {
+      background: #FFF9C4;
+      border-left: 4px solid #F5C623;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #7A5800;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="breadcrumb"><a href="/">← Calculator Ture</a></nav>
+
+    <h1>Calculator Salariu Net 2026</h1>
+    <p>Calculează salariul net din brut, cu toate deducerile fiscale românești, spor de noapte și ore suplimentare.</p>
+
+    <hr class="divider" />
+
+    <div class="calc-card">
+      <div class="input-group">
+        <label>Salariu brut de bază (lei)</label>
+        <input type="number" id="brut" placeholder="ex: 5000" min="0" step="100" />
+      </div>
+
+      <div class="input-group">
+        <label>Ore de noapte în luna asta</label>
+        <input type="number" id="ore-noapte" placeholder="ex: 48" min="0" step="1" value="0" />
+      </div>
+
+      <div class="input-group">
+        <label>Ore suplimentare în luna asta</label>
+        <input type="number" id="ore-extra" placeholder="ex: 10" min="0" step="1" value="0" />
+      </div>
+
+      <div class="input-group">
+        <label>Norma lunii (ore)</label>
+        <select id="norma-select">
+          <option value="144">Ianuarie 2026 — 144 ore</option>
+          <option value="160" selected>Februarie 2026 — 160 ore</option>
+          <option value="176">Martie 2026 — 176 ore</option>
+          <option value="160">Aprilie 2026 — 160 ore</option>
+          <option value="152">Mai 2026 — 152 ore</option>
+          <option value="160">Iunie 2026 — 160 ore</option>
+          <option value="184">Iulie 2026 — 184 ore</option>
+          <option value="168">August 2026 — 168 ore</option>
+          <option value="176">Septembrie 2026 — 176 ore</option>
+          <option value="176">Octombrie 2026 — 176 ore</option>
+          <option value="152">Noiembrie 2026 — 152 ore</option>
+          <option value="168">Decembrie 2026 — 168 ore</option>
+        </select>
+      </div>
+
+      <div class="input-group">
+        <label>Persoane în întreținere (pentru deducere personală)</label>
+        <select id="dependenti">
+          <option value="0">Fără persoane în întreținere</option>
+          <option value="1">1 persoană</option>
+          <option value="2">2 persoane</option>
+          <option value="3">3 persoane</option>
+          <option value="4">4+ persoane</option>
+        </select>
+      </div>
+
+      <button class="calc-btn" onclick="calculeaza()">Calculează salariul net</button>
+    </div>
+
+    <div id="rezultate" style="display:none">
+      <div class="info-box" id="info-box"></div>
+      <div class="result-grid" id="result-grid"></div>
+    </div>
+
+    <hr class="divider" />
+
+    <h2>Cum se calculează salariul net în 2026?</h2>
+    <p>Din salariul brut se rețin trei contribuții obligatorii:</p>
+    <ul>
+      <li><strong>CAS (pensie) — 25%</strong> din salariul brut</li>
+      <li><strong>CASS (sănătate) — 10%</strong> din salariul brut</li>
+      <li><strong>Impozit pe venit — 10%</strong> din venitul impozabil (brut minus CAS, CASS și deducere personală)</li>
+    </ul>
+    <p>Sporurile (noapte, ore suplimentare) se adaugă la brut înainte de calcul.</p>
+
+    <h2>Ce este deducerea personală?</h2>
+    <p>Angajații cu salariu brut până în 3.600 lei beneficiază de o deducere personală care reduce baza de impozitare. Valoarea exactă depinde de numărul de persoane în întreținere și de salariul brut.</p>
+
+    <div class="cta-box">
+      <p>Calculează-ți și programul de ture cu <a href="/">Calculator Ture</a> — gratuit.</p>
+    </div>
+  </div>
+
+  <script>
+    function getDeducere(brut, dependenti) {
+      // Deducere personală 2026 conform legislației
+      if (brut <= 2000) {
+        const baza = [300, 400, 500, 600, 700][Math.min(dependenti, 4)];
+        return baza;
+      } else if (brut <= 3600) {
+        const baza = [300, 400, 500, 600, 700][Math.min(dependenti, 4)];
+        return Math.round(baza * (1 - (brut - 2000) / 1600));
+      }
+      return 0;
+    }
+
+    function calculeaza() {
+      const brut = parseFloat(document.getElementById('brut').value) || 0;
+      const oreNoapte = parseFloat(document.getElementById('ore-noapte').value) || 0;
+      const oreExtra = parseFloat(document.getElementById('ore-extra').value) || 0;
+      const norma = parseFloat(document.getElementById('norma-select').value) || 160;
+      const dependenti = parseInt(document.getElementById('dependenti').value) || 0;
+
+      if (brut <= 0) {
+        alert('Introdu salariul brut de bază.');
+        return;
+      }
+
+      const tarifOrar = brut / norma;
+
+      // Sporuri
+      const sporNoapte = Math.round(oreNoapte * tarifOrar * 0.25 * 100) / 100;
+      const sporExtra = Math.round(oreExtra * tarifOrar * 0.75 * 100) / 100;
+      const brutTotal = Math.round((brut + sporNoapte + sporExtra) * 100) / 100;
+
+      // Contributii
+      const cas = Math.round(brutTotal * 0.25 * 100) / 100;
+      const cass = Math.round(brutTotal * 0.10 * 100) / 100;
+      const deducere = getDeducere(brut, dependenti);
+      const bazaImpozit = Math.max(0, brutTotal - cas - cass - deducere);
+      const impozit = Math.round(bazaImpozit * 0.10 * 100) / 100;
+      const net = Math.round((brutTotal - cas - cass - impozit) * 100) / 100;
+
+      // Afișare
+      document.getElementById('rezultate').style.display = 'block';
+
+      let infoText = `Tarif orar: ${tarifOrar.toFixed(2)} lei/oră`;
+      if (oreNoapte > 0) infoText += ` · Spor noapte: +${sporNoapte} lei`;
+      if (oreExtra > 0) infoText += ` · Spor ore extra: +${sporExtra} lei`;
+      document.getElementById('info-box').textContent = infoText;
+
+      document.getElementById('result-grid').innerHTML = `
+        <div class="result-item highlight">
+          <div class="result-val">${net.toLocaleString('ro-RO')} lei</div>
+          <div class="result-lbl">Salariu NET de încasat</div>
+        </div>
+        <div class="result-item">
+          <div class="result-val">${brutTotal.toLocaleString('ro-RO')} lei</div>
+          <div class="result-lbl">Brut total (cu sporuri)</div>
+        </div>
+        <div class="result-item">
+          <div class="result-val">${cas.toLocaleString('ro-RO')} lei</div>
+          <div class="result-lbl">CAS — pensie (25%)</div>
+        </div>
+        <div class="result-item">
+          <div class="result-val">${cass.toLocaleString('ro-RO')} lei</div>
+          <div class="result-lbl">CASS — sănătate (10%)</div>
+        </div>
+        <div class="result-item">
+          <div class="result-val">${impozit.toLocaleString('ro-RO')} lei</div>
+          <div class="result-lbl">Impozit venit (10%)</div>
+        </div>
+        <div class="result-item">
+          <div class="result-val">${deducere} lei</div>
+          <div class="result-lbl">Deducere personală</div>
+        </div>
+      `;
+
+      document.getElementById('rezultate').scrollIntoView({ behavior: 'smooth' });
+    }
+  </script>
+</body>
+</html>
