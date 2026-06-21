@@ -2,8 +2,8 @@
   "name": "Calculator Ture",
   "short_name": "Ture",
   "description": "Calculator de ture pentru muncitori în schimburi",
-  "start_url": "/calculator-ture/",
-  "scope": "/calculator-ture/"
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#f5f5f5",
   "theme_color": "#1D9E75",
