@@ -747,7 +747,37 @@ document.addEventListener('DOMContentLoaded', () => {
   if (pwaModal) pwaModal.addEventListener('click', (e) => { if (e.target === pwaModal) closePwaModal(); });
   const shareModal = document.getElementById('share-modal');
   if (shareModal) shareModal.addEventListener('click', (e) => { if (e.target === shareModal) closeShareModal(); });
+  const premiumModal = document.getElementById('premium-modal');
+  if (premiumModal) premiumModal.addEventListener('click', (e) => { if (e.target === premiumModal) closePremiumModal(); });
+  initPremiumBanner();
 });
+
+// ===== Premium Banner =====
+const PREMIUM_BANNER_DISMISS_KEY = 'premium_banner_dismissed';
+const PREMIUM_BANNER_DISMISS_MS = 7 * 24 * 60 * 60 * 1000; // 7 zile
+
+function initPremiumBanner() {
+  const banner = document.getElementById('premium-banner');
+  if (!banner) return;
+  const dismissedAt = parseInt(localStorage.getItem(PREMIUM_BANNER_DISMISS_KEY), 10);
+  const stillDismissed = dismissedAt && (Date.now() - dismissedAt) < PREMIUM_BANNER_DISMISS_MS;
+  banner.style.display = stillDismissed ? 'none' : 'flex';
+}
+
+function dismissPremiumBanner() {
+  localStorage.setItem(PREMIUM_BANNER_DISMISS_KEY, Date.now().toString());
+  const banner = document.getElementById('premium-banner');
+  if (banner) banner.style.display = 'none';
+}
+
+function openPremiumModal() {
+  const modal = document.getElementById('premium-modal');
+  if (modal) modal.style.display = 'flex';
+}
+function closePremiumModal() {
+  const modal = document.getElementById('premium-modal');
+  if (modal) modal.style.display = 'none';
+}
 
 // ===== Reset Parolă =====
 function showResetPassword() {
