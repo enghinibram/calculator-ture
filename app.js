@@ -320,7 +320,7 @@ async function loadSettings() {
     .from('user_settings')
     .select('*')
     .eq('user_id', currentUser.id)
-    .single();
+    .maybeSingle();
   if (data) {
     if (data.tura_type) {
       document.getElementById('tura-type').value = data.tura_type;
@@ -926,8 +926,34 @@ function updateUserBar(user) {
 sb.auth.onAuthStateChange(async (event, session) => {
   const user = session?.user ?? null;
   updateUserBar(user);
-  if (user) await loadSettings();
+  if (user) {
+    await loadSettings();
+    await checkPremiumStatus();
+  }
 });
+
+// ===== Premium status =====
+async function checkPremiumStatus() {
+  if (!currentUser) return;
+  const { data, error } = await sb
+    .from('premium_status')
+    .select('is_premium, premium_expires')
+    .eq('user_id', currentUser.id)
+    .maybeSingle();
+  if (error) return;
+
+  const isActivePremium = !!(
+    data &&
+    data.is_premium &&
+    data.premium_expires &&
+    new Date(data.premium_expires) > new Date()
+  );
+
+  if (isActivePremium) {
+    const banner = document.getElementById('premium-banner');
+    if (banner) banner.style.display = 'none';
+  }
+}
 
 // ===== Init =====
 // Detectează dacă utilizatorul vine dintr-un link de reset parolă
