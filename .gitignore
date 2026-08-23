@@ -1,0 +1,4 @@
+.vercel
+.env*
+cron_secret.txt
+supabase/.temp/
