@@ -89,6 +89,30 @@ async function upsertPremiumStatus(supabaseUrl, supabaseSecretKey, row) {
   }
 }
 
+// client_id-ul GA4 vine din checkout[custom][client_id], atașat la link-ul
+// de checkout în browser (vezi startCheckout() din app.js) și întors de
+// Lemon Squeezy în payload la meta.custom_data.client_id.
+async function sendGA4Event(clientId, eventName, params) {
+  const measurementId = process.env.GA4_MEASUREMENT_ID;
+  const apiSecret = process.env.GA4_API_SECRET;
+  if (!measurementId || !apiSecret || !clientId) return;
+
+  try {
+    await fetch(
+      `https://www.google-analytics.com/mp/collect?measurement_id=${measurementId}&api_secret=${apiSecret}`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          client_id: clientId,
+          events: [{ name: eventName, params }],
+        }),
+      }
+    );
+  } catch {
+    // non-critic — nu blocăm webhook-ul dacă GA4 e indisponibil
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
@@ -151,6 +175,11 @@ export default async function handler(req, res) {
     }
 
     await upsertPremiumStatus(supabaseUrl, supabaseSecretKey, row);
+
+    if (eventName === 'subscription_created') {
+      const clientId = payload?.meta?.custom_data?.client_id;
+      await sendGA4Event(clientId, 'plata_confirmata', { plan });
+    }
 
     return res.status(200).json({ ok: true, email, plan, isPremium });
   } catch (err) {

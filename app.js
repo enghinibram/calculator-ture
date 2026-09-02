@@ -16,6 +16,7 @@ let currentUser = null;
 let coDays = new Set();
 let cmDays = new Set();
 let editMode = null;
+let calculFacutTrimis = false; // GA4: trimitem calcul_facut o singură dată per sesiune
 
 // ===== Dark Mode =====
 function applyTheme(theme) {
@@ -457,6 +458,11 @@ function recalc() {
     const elExtra = document.getElementById('ore-extra');
     elExtra.textContent = (extra >= 0 ? '+' : '') + extra;
     elExtra.style.color = extra >= 0 ? '#1D9E75' : '#e53e3e';
+
+    if (!calculFacutTrimis) {
+      calculFacutTrimis = true;
+      if (typeof window.gtag === 'function') gtag('event', 'calcul_facut');
+    }
   }
 
   updateCoBadge();
@@ -779,6 +785,25 @@ function closePremiumModal() {
   if (modal) modal.style.display = 'none';
 }
 
+// ===== Checkout Lemon Squeezy =====
+function getGaClientId() {
+  const match = document.cookie.match(/(?:^|;\s*)_ga=GA\d\.\d\.(\d+\.\d+)/);
+  return match ? match[1] : null;
+}
+
+// Atașăm client_id-ul GA4 la link-ul de checkout ca custom data,
+// ca să-l putem recupera în webhook-ul Lemon Squeezy și trimite
+// evenimentul plata_confirmata (server-side) către același vizitator.
+function startCheckout(el, plan) {
+  if (typeof window.gtag === 'function') gtag('event', 'checkout_inceput', { plan: plan });
+  const clientId = getGaClientId();
+  if (clientId) {
+    const url = new URL(el.href);
+    url.searchParams.set('checkout[custom][client_id]', clientId);
+    el.href = url.href;
+  }
+}
+
 // ===== Reset Parolă =====
 function showResetPassword() {
   document.getElementById('auth-overlay').style.display = 'none';
@@ -850,6 +875,8 @@ async function doRegister() {
   if (pass.length < 6) { showAuthError('Parola trebuie să aibă minim 6 caractere.'); return; }
   const { error } = await sb.auth.signUp({ email, password: pass });
   if (error) { showAuthError('Eroare la creare cont. Încearcă din nou.'); return; }
+
+  if (typeof window.gtag === 'function') gtag('event', 'cont_creat');
 
   document.getElementById('auth-box-inner').innerHTML = `
     <div style="text-align:center; padding: 0.5rem 0;">
