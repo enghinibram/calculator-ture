@@ -167,6 +167,10 @@ export default async function handler(req, res) {
       plan,
       premium_expires: expiresAt,
       lemon_squeezy_subscription_id: String(payload.data.id),
+      // Notificările push sunt un "produs" separat de is_premium în schemă,
+      // dar în lipsa unui toggle dedicat în UI îl ținem sincron cu statusul
+      // de premium: activ cât timp abonamentul e activ, oprit la expirare.
+      push_product_active: isPremium,
     };
     // premium_since = data reală de creare a abonamentului (nu "acum"),
     // și doar când userul e premium — la expirare păstrăm istoricul.

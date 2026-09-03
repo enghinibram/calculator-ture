@@ -339,6 +339,20 @@
       <button class="premium-banner-btn" onclick="openPremiumModal()">Vezi planurile</button>
     </div>
 
+    <!-- ===== NOTIFICĂRI TURĂ (doar Premium) ===== -->
+    <div id="push-settings" class="push-settings" style="display:none">
+      <p class="push-settings-title">🔔 Reminder înainte de tură</p>
+      <p class="push-settings-sub">Primești o notificare pe telefon cu 2-3 ore înainte să înceapă tura.</p>
+
+      <div class="push-settings-row">
+        <label for="shift-start-time">Ora de start a turei</label>
+        <input type="time" id="shift-start-time" />
+      </div>
+
+      <button id="push-activate-btn" class="push-activate-btn" onclick="activatePush()">Activează notificări</button>
+      <p id="push-status" class="push-status" style="display:none"></p>
+    </div>
+
     <!-- ===== BUTOANE DE ACȚIUNE ===== -->
     <div id="action-buttons" class="action-buttons">
       <button class="action-btn print-btn" onclick="doPrint()" title="Printează calendarul">
@@ -432,7 +446,7 @@
   <script src="app.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/calculator-ture/sw.js');
+      navigator.serviceWorker.register('/sw.js');
     }
   </script>
 

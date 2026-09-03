@@ -17,6 +17,7 @@ let coDays = new Set();
 let cmDays = new Set();
 let editMode = null;
 let calculFacutTrimis = false; // GA4: trimitem calcul_facut o singură dată per sesiune
+let pushEligible = false; // is_premium && push_product_active — gatează UI-ul de notificări
 
 // ===== Dark Mode =====
 function applyTheme(theme) {
@@ -303,14 +304,17 @@ async function saveSettings() {
   const startStr = startDate
     ? `${startDate.getFullYear()}-${String(startDate.getMonth()+1).padStart(2,'0')}-${String(startDate.getDate()).padStart(2,'0')}`
     : null;
+  const shiftStartInput = document.getElementById('shift-start-time');
+  const shiftStartTime = shiftStartInput && shiftStartInput.value ? shiftStartInput.value : null;
   await sb.from('user_settings').upsert({
-    user_id:     currentUser.id,
-    start_date:  startStr,
-    tura_type:   turaType,
-    co_days:     serializeSet(coDays),
-    cm_days:     serializeSet(cmDays),
-    custom_days: serializeSet(customDays),
-    custom_ore:  getCustomOre(),
+    user_id:          currentUser.id,
+    start_date:       startStr,
+    tura_type:        turaType,
+    co_days:          serializeSet(coDays),
+    cm_days:          serializeSet(cmDays),
+    custom_days:      serializeSet(customDays),
+    custom_ore:       getCustomOre(),
+    shift_start_time: shiftStartTime,
   }, { onConflict: 'user_id' });
 }
 
@@ -341,6 +345,10 @@ async function loadSettings() {
     if (data.custom_ore) {
       const inp = document.getElementById('custom-ore-input');
       if (inp) inp.value = data.custom_ore;
+    }
+    if (data.shift_start_time) {
+      const inp = document.getElementById('shift-start-time');
+      if (inp) inp.value = data.shift_start_time.slice(0, 5); // "HH:MM:SS" -> "HH:MM"
     }
   }
   recalc();
@@ -687,6 +695,10 @@ document.addEventListener('DOMContentLoaded', () => {
       saveSettings();
     });
   }
+  const shiftStartInput = document.getElementById('shift-start-time');
+  if (shiftStartInput) {
+    shiftStartInput.addEventListener('change', () => saveSettings());
+  }
 });
 
 // ===== PWA Install =====
@@ -801,6 +813,94 @@ function startCheckout(el, plan) {
     const url = new URL(el.href);
     url.searchParams.set('checkout[custom][client_id]', clientId);
     el.href = url.href;
+  }
+}
+
+// ===== Notificări push (reminder înainte de tură, Premium) =====
+function isIOSDevice() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+
+function isStandalonePWA() {
+  return window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+}
+
+function showPushStatus(msg, type) {
+  const el = document.getElementById('push-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'push-status' + (type ? ' ' + type : '');
+  el.style.display = 'block';
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+function updatePushSettingsUI() {
+  const box = document.getElementById('push-settings');
+  if (box) box.style.display = pushEligible ? 'block' : 'none';
+}
+
+async function activatePush() {
+  if (!currentUser || !pushEligible) return;
+
+  // iOS Safari suportă push doar din PWA instalată pe ecranul principal
+  // (iOS 16.4+) — dintr-un tab normal, requestPermission eșuează silențios.
+  if (isIOSDevice() && !isStandalonePWA()) {
+    showPushStatus('Pe iPhone/iPad, notificările funcționează doar din aplicația instalată pe ecranul principal (iOS 16.4+). Instaleaz-o, apoi revino aici.', 'error');
+    openPwaModal();
+    return;
+  }
+
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    showPushStatus('Browserul tău nu suportă notificări push.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('push-activate-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Se activează...'; }
+
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      showPushStatus('Ai refuzat notificările. Le poți activa oricând din setările browserului.', 'error');
+      if (btn) { btn.disabled = false; btn.textContent = 'Activează notificări'; }
+      return;
+    }
+
+    const reg = await navigator.serviceWorker.ready;
+
+    const keyRes = await fetch('/api/vapid-public-key');
+    if (!keyRes.ok) throw new Error('Nu am putut obține cheia VAPID.');
+    const { publicKey } = await keyRes.json();
+
+    const subscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey),
+    });
+
+    const raw = subscription.toJSON();
+    const { error } = await sb.from('push_subscriptions').upsert({
+      user_id:  currentUser.id,
+      endpoint: raw.endpoint,
+      p256dh:   raw.keys.p256dh,
+      auth_key: raw.keys.auth,
+    }, { onConflict: 'user_id,endpoint' });
+
+    if (error) throw error;
+
+    showPushStatus('✓ Notificări activate! Îți trimitem un reminder înainte de tură.', 'success');
+    if (btn) btn.textContent = '✓ Notificări active';
+  } catch (err) {
+    console.error('Eroare activare push:', err);
+    showPushStatus('A apărut o eroare la activarea notificărilor. Încearcă din nou.', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Activează notificări'; }
   }
 }
 
@@ -945,6 +1045,8 @@ function updateUserBar(user) {
     notice.style.display  = 'none';
     prevBtn.disabled = false;
     nextBtn.disabled = false;
+    pushEligible = false;
+    updatePushSettingsUI();
     recalc();
   }
 }
@@ -964,7 +1066,7 @@ async function checkPremiumStatus() {
   if (!currentUser) return;
   const { data, error } = await sb
     .from('premium_status')
-    .select('is_premium, premium_expires')
+    .select('is_premium, premium_expires, push_product_active')
     .eq('user_id', currentUser.id)
     .maybeSingle();
   if (error) return;
@@ -980,6 +1082,9 @@ async function checkPremiumStatus() {
     const banner = document.getElementById('premium-banner');
     if (banner) banner.style.display = 'none';
   }
+
+  pushEligible = isActivePremium && !!(data && data.push_product_active);
+  updatePushSettingsUI();
 }
 
 // ===== Init =====
