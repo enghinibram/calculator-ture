@@ -250,6 +250,10 @@ async function runReminders() {
   const todayKey = `${today.y}-${today.m}-${today.d}`;
   const todayDateCol = `${today.y}-${String(today.m).padStart(2, "0")}-${String(today.d).padStart(2, "0")}`;
 
+  // TEMPORAR: azi push_product_active e ținut sincron cu is_premium (vezi
+  // lemonsqueezy-webhook.js) — dar cele două vor deveni independente când
+  // push devine vandabil separat, la useri non-Premium. Nu presupune că
+  // filtrul de mai jos poate fi simplificat la doar is_premium.
   const { data: premiumUsers, error: puErr } = await supabase
     .from("premium_status")
     .select("user_id")

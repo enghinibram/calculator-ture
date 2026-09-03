@@ -167,9 +167,14 @@ export default async function handler(req, res) {
       plan,
       premium_expires: expiresAt,
       lemon_squeezy_subscription_id: String(payload.data.id),
-      // Notificările push sunt un "produs" separat de is_premium în schemă,
-      // dar în lipsa unui toggle dedicat în UI îl ținem sincron cu statusul
-      // de premium: activ cât timp abonamentul e activ, oprit la expirare.
+      // TEMPORAR: push_product_active e ținut sincron cu is_premium (activ
+      // cât abonamentul e activ, oprit la expirare) fiindcă azi push-ul e
+      // doar un beneficiu inclus în Premium, fără flow propriu de vânzare.
+      // Planul e ca push să devină vandabil separat, standalone, și la useri
+      // non-Premium — când se întâmplă asta, push_product_active NU mai
+      // trebuie setat automat aici, ci printr-un toggle/flow de plată
+      // dedicat. Nu presupune că is_premium și push_product_active rămân
+      // mereu identice.
       push_product_active: isPremium,
     };
     // premium_since = data reală de creare a abonamentului (nu "acum"),
