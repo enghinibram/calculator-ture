@@ -563,6 +563,19 @@
     </div>
   </div>
 
+  <!-- ===== EMAIL CAPTURE SLIDE-IN ===== -->
+  <div id="email-capture-card" class="email-capture-card" style="display:none">
+    <button id="email-capture-close" class="email-capture-close" onclick="closeEmailCaptureCard()" aria-label="Închide">&#x2715;</button>
+    <div id="email-capture-body">
+      <p class="email-capture-title">Ți-am calculat tura. 👋</p>
+      <p class="email-capture-sub">Lasă-ți emailul și te ținem la curent cu noutățile — funcții noi, îmbunătățiri, și reminderele înainte de tură când le lansăm.</p>
+      <div id="email-capture-error" class="email-capture-error" style="display:none"></div>
+      <input type="email" id="email-capture-input" class="email-capture-input" placeholder="Email" onkeydown="if(event.key==='Enter') submitEmailCapture()" />
+      <button class="email-capture-btn" onclick="submitEmailCapture()">Vreau să fiu anunțat</button>
+      <p class="email-capture-footnote">Fără spam. Un email când trebuie, atât.</p>
+    </div>
+    <div id="email-capture-success" class="email-capture-success" style="display:none">Gata, te-am adăugat! ✓</div>
+  </div>
 
 </body>
 </html>

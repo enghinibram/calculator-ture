@@ -470,6 +470,7 @@ function recalc() {
     if (!calculFacutTrimis) {
       calculFacutTrimis = true;
       if (typeof window.gtag === 'function') gtag('event', 'calcul_facut');
+      scheduleEmailCapture();
     }
   }
 
@@ -662,6 +663,73 @@ function generateAndDownloadPdf() {
       document.body.classList.remove('printing-pdf');
     }, 500);
   }, 100);
+}
+
+// ===== Email Capture (slide-in, MVP fără remindere — vezi calculatorture) =====
+const EMAIL_CAPTURE_SEEN_KEY = 'email_capture_seen';
+
+function scheduleEmailCapture() {
+  if (localStorage.getItem(EMAIL_CAPTURE_SEEN_KEY)) return;
+  setTimeout(showEmailCaptureCard, 800);
+}
+
+function showEmailCaptureCard() {
+  if (localStorage.getItem(EMAIL_CAPTURE_SEEN_KEY)) return;
+  localStorage.setItem(EMAIL_CAPTURE_SEEN_KEY, '1');
+  const card = document.getElementById('email-capture-card');
+  if (!card) return;
+  card.style.display = 'block';
+  requestAnimationFrame(() => card.classList.add('visible'));
+  if (typeof window.gtag === 'function') gtag('event', 'popup_email_afisat');
+}
+
+function closeEmailCaptureCard() {
+  localStorage.setItem(EMAIL_CAPTURE_SEEN_KEY, '1');
+  const card = document.getElementById('email-capture-card');
+  if (!card) return;
+  card.classList.remove('visible');
+  setTimeout(() => { card.style.display = 'none'; }, 350);
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+async function submitEmailCapture() {
+  const input = document.getElementById('email-capture-input');
+  const errEl = document.getElementById('email-capture-error');
+  const email = input.value.trim();
+
+  if (!isValidEmail(email)) {
+    errEl.textContent = 'Te rog introdu un email valid.';
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+
+  const btn = document.querySelector('#email-capture-body .email-capture-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Se trimite...'; }
+
+  try {
+    // Insert simplu, nu upsert: cu RLS doar-INSERT (fără SELECT pentru anon),
+    // varianta upsert(ignoreDuplicates) a PostgREST eșuează cu 42501 — are
+    // nevoie implicit de o verificare gen SELECT pe care rolul anon n-o are.
+    // Constraint-ul unic pe email tratează duplicatele (23505), prins mai jos.
+    const { error } = await sb.from('email_leads').insert({ email, source: 'popup_calculator' });
+    // Duplicat (email deja existent) sau orice altă eroare — tratăm silențios
+    // ca succes față de vizitator; nu are rost să-i spunem că e duplicat.
+    if (error && error.code !== '23505') {
+      console.error('Eroare salvare email lead:', error);
+    } else {
+      if (typeof window.gtag === 'function') gtag('event', 'email_lasat');
+    }
+  } catch (err) {
+    console.error('Eroare salvare email lead:', err);
+  }
+
+  document.getElementById('email-capture-body').style.display = 'none';
+  document.getElementById('email-capture-success').style.display = 'block';
+  setTimeout(closeEmailCaptureCard, 3000);
 }
 
 // ===== Event Listeners =====
