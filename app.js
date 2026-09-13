@@ -857,6 +857,7 @@ function dismissPremiumBanner() {
 }
 
 function openPremiumModal() {
+  if (typeof window.gtag === 'function') gtag('event', 'upgrade_click', { source: 'banner' });
   const modal = document.getElementById('premium-modal');
   if (modal) modal.style.display = 'flex';
 }
