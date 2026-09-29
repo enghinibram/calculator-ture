@@ -387,6 +387,51 @@
       </div>
     </div>
 
+    <!-- Export calendar (.ics) -->
+    <div class="section ics-section">
+      <button class="co-cm-btn" id="btn-ics-toggle" onclick="toggleIcsPanel()">📅 Exportă în calendar ▾</button>
+      <div id="ics-panel" class="push-settings ics-panel" style="display:none">
+        <div class="push-settings-row">
+          <label for="ics-range">Perioada</label>
+          <select id="ics-range" class="ics-select">
+            <option value="1">Luna afișată</option>
+            <option value="3">Următoarele 3 luni</option>
+          </select>
+        </div>
+        <div class="push-settings-row">
+          <label for="ics-day-start">Ora start tură de zi</label>
+          <input type="time" id="ics-day-start" class="ics-setting" value="07:00" />
+        </div>
+        <div class="push-settings-row">
+          <label for="ics-night-start">Ora start tură de noapte</label>
+          <input type="time" id="ics-night-start" class="ics-setting" value="19:00" />
+        </div>
+        <div class="push-settings-row">
+          <label for="ics-alarm-day">Ora alarmei pentru tura de zi</label>
+          <input type="time" id="ics-alarm-day" class="ics-setting" value="05:30" />
+        </div>
+        <div class="push-settings-row">
+          <label for="ics-alarm-night">Ora alarmei pentru tura de noapte</label>
+          <input type="time" id="ics-alarm-night" class="ics-setting" value="17:30" />
+        </div>
+        <label class="day-double-row ics-check">
+          <input type="checkbox" id="ics-alarm2" class="ics-setting" />
+          Alarmă secundară
+        </label>
+        <div id="ics-alarm2-row" class="custom-ore-row" style="display:none">
+          <input type="number" id="ics-alarm2-min" class="custom-ore-input salariu-input ics-setting" value="30" min="1" max="1440" step="5" />
+          <span class="custom-ore-label">minute înainte de prima alarmă</span>
+        </div>
+        <label class="day-double-row ics-check">
+          <input type="checkbox" id="ics-include-leave" class="ics-setting" />
+          Include CO/CM (toată ziua, fără alarmă)
+        </label>
+        <button class="push-activate-btn" id="btn-ics-export" onclick="exportIcs()">Exportă în calendar</button>
+        <p class="custom-hint ics-hint">Importă fișierul în calendar. Dacă schimbi turele, exportă din nou.</p>
+        <p id="ics-status" class="push-status" style="display:none"></p>
+      </div>
+    </div>
+
     <!-- ===== PREMIUM BANNER ===== -->
     <div id="premium-banner" class="premium-banner" style="display:none">
       <button class="premium-banner-close" onclick="dismissPremiumBanner()" title="Închide" aria-label="Închide">&times;</button>

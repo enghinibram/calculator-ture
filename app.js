@@ -24,6 +24,15 @@ const DOUBLE_ORE_DEFAULT = 12;
 let payPerShift = 200;      // lei / tură normală
 let doubleMultiplier = 2;   // 2 = 200%
 const DUBLE_LOCAL_KEY = 'ture-duble'; // salvare locală pentru utilizatorii fără cont
+
+// Setări export calendar (.ics) — salvate ca setările de plată (coloana ics_settings, JSON)
+const ICS_DEFAULTS = {
+  dayStart: '07:00', nightStart: '19:00',   // ora de start a turei de zi / noapte
+  alarmDay: '05:30', alarmNight: '17:30',   // ora alarmei în ziua turei
+  alarm2: false, alarm2Min: 30,             // alarmă secundară, minute înainte de prima
+  includeLeave: false,                      // CO/CM ca evenimente pe toată ziua, fără alarmă
+};
+let icsSettings = { ...ICS_DEFAULTS };
 let calculFacutTrimis = false; // GA4: trimitem calcul_facut o singură dată per sesiune
 let pushEligible = false; // is_premium && push_product_active — gatează UI-ul de notificări
 
@@ -329,6 +338,7 @@ function saveDubleLocal() {
   try {
     localStorage.setItem(DUBLE_LOCAL_KEY, JSON.stringify({
       double_days: doubleDays, pay_per_shift: payPerShift, double_multiplier: doubleMultiplier,
+      ics_settings: icsSettings,
     }));
   } catch { /* storage indisponibil */ }
 }
@@ -340,7 +350,54 @@ function loadDubleLocal() {
     const data = JSON.parse(raw);
     if (data.double_days && typeof data.double_days === 'object') doubleDays = data.double_days;
     applyDubleSettings(data.pay_per_shift, data.double_multiplier);
+    applyIcsSettings(data.ics_settings);
   } catch { /* date corupte — ignorăm */ }
+}
+
+// ===== Setări .ics =====
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+function applyIcsSettings(obj) {
+  if (obj && typeof obj === 'object') {
+    for (const k of ['dayStart', 'nightStart', 'alarmDay', 'alarmNight']) {
+      if (TIME_RE.test(obj[k])) icsSettings[k] = obj[k];
+    }
+    if (typeof obj.alarm2 === 'boolean')       icsSettings.alarm2 = obj.alarm2;
+    if (typeof obj.includeLeave === 'boolean') icsSettings.includeLeave = obj.includeLeave;
+    const min = parseInt(obj.alarm2Min, 10);
+    if (min > 0 && min <= 1440) icsSettings.alarm2Min = min;
+  }
+  const set = (id, prop, v) => { const el = document.getElementById(id); if (el) el[prop] = v; };
+  set('ics-day-start',     'value',   icsSettings.dayStart);
+  set('ics-night-start',   'value',   icsSettings.nightStart);
+  set('ics-alarm-day',     'value',   icsSettings.alarmDay);
+  set('ics-alarm-night',   'value',   icsSettings.alarmNight);
+  set('ics-alarm2',        'checked', icsSettings.alarm2);
+  set('ics-alarm2-min',    'value',   icsSettings.alarm2Min);
+  set('ics-include-leave', 'checked', icsSettings.includeLeave);
+  const row = document.getElementById('ics-alarm2-row');
+  if (row) row.style.display = icsSettings.alarm2 ? 'flex' : 'none';
+}
+
+function readIcsInputs() {
+  applyIcsSettings({
+    dayStart:     document.getElementById('ics-day-start').value,
+    nightStart:   document.getElementById('ics-night-start').value,
+    alarmDay:     document.getElementById('ics-alarm-day').value,
+    alarmNight:   document.getElementById('ics-alarm-night').value,
+    alarm2:       document.getElementById('ics-alarm2').checked,
+    alarm2Min:    document.getElementById('ics-alarm2-min').value,
+    includeLeave: document.getElementById('ics-include-leave').checked,
+  });
+}
+
+// Upsert separat: dacă migrarea ics_settings nu e rulată, nu blochează restul salvării
+async function saveIcsRemote() {
+  const { error } = await sb.from('user_settings').upsert({
+    user_id:      currentUser.id,
+    ics_settings: JSON.stringify(icsSettings),
+  }, { onConflict: 'user_id' });
+  if (error) console.error('Eroare salvare setări calendar:', error);
 }
 
 // Upsert separat: dacă migrarea cu coloanele noi nu e rulată încă,
@@ -376,6 +433,7 @@ async function saveSettings() {
     shift_start_time: shiftStartTime,
   }, { onConflict: 'user_id' });
   await saveDubleRemote();
+  await saveIcsRemote();
 }
 
 // ===== Supabase: încărcare =====
@@ -404,6 +462,7 @@ async function loadSettings() {
     if (data.custom_days) customDays = deserializeSet(data.custom_days);
     if (data.double_days) doubleDays = deserializeObj(data.double_days);
     applyDubleSettings(data.pay_per_shift, data.double_multiplier);
+    if (data.ics_settings) applyIcsSettings(deserializeObj(data.ics_settings));
     if (data.custom_ore) {
       const inp = document.getElementById('custom-ore-input');
       if (inp) inp.value = data.custom_ore;
@@ -511,15 +570,17 @@ function describeShift(dateObj) {
 }
 
 // Format double_days (compatibil cu datele vechi):
-//   număr        → dublă peste o tură existentă (ore suplimentare)
-//   { ore, tip } → dublă pe zi liberă (chemat la muncă), tip = 'zi' | 'noapte'
+//   număr        → dublă salvată înainte de selectorul de tip (tipul se deduce)
+//   { ore, tip } → dublă cu tip ales, tip = 'zi' | 'noapte' (peste tură sau pe zi liberă)
 function getDoubleOre(key) {
   const v = doubleDays[key];
   return Number(v && typeof v === 'object' ? v.ore : v) || 0;
 }
 
-// Implicit: Noapte în prima zi liberă după o tură de noapte, altfel Zi
+// Implicit: peste o tură → tipul opus turei (Z → noapte, N → zi);
+// pe zi liberă → Noapte în prima zi liberă după o tură de noapte, altfel Zi
 function defaultDoubleTip(dateObj) {
+  if (isWorkedDay(dateObj)) return getShift(dateObj).type === 'zi' ? 'noapte' : 'zi';
   const prev = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate() - 1);
   const sh = getShift(prev);
   return (isWorkedDay(prev) && sh.type === 'noapte' && sh.label !== 'A') ? 'noapte' : 'zi';
@@ -532,9 +593,7 @@ function getDoubleTip(key, dateObj) {
 }
 
 function setDouble(key, dateObj, ore, tip) {
-  doubleDays[key] = isWorkedDay(dateObj)
-    ? ore
-    : { ore, tip: tip || getDoubleTip(key, dateObj) };
+  doubleDays[key] = { ore, tip: tip || getDoubleTip(key, dateObj) };
 }
 
 function renderDayPanel() {
@@ -569,10 +628,11 @@ function renderDayPanel() {
   oreInp.value = isDubla ? getDoubleOre(key) : DOUBLE_ORE_DEFAULT;
   document.getElementById('day-double-ore-row').style.display = isDubla ? 'flex' : 'none';
 
-  // Tipul dublei (Zi/Noapte) doar pentru dublă pe zi liberă
+  // Tipul dublei (Zi/Noapte), atât peste tură cât și pe zi liberă
   const onFreeDay = isDubla && !worked && !isLeave;
-  document.getElementById('day-double-tip-row').style.display = onFreeDay ? 'flex' : 'none';
-  if (onFreeDay) document.getElementById('day-double-tip').value = getDoubleTip(key, dateObj);
+  const showTip   = isDubla && !isLeave;
+  document.getElementById('day-double-tip-row').style.display = showTip ? 'flex' : 'none';
+  if (showTip) document.getElementById('day-double-tip').value = getDoubleTip(key, dateObj);
 
   const plataDubla = `${payPerShift} × ${doubleMultiplier} = ${payPerShift * doubleMultiplier} lei`;
   const note = document.getElementById('day-double-note');
@@ -663,6 +723,18 @@ function isWorkedDay(dateObj) {
   return !!(sh && (sh.type === 'zi' || sh.type === 'noapte'));
 }
 
+// Descrierea unei zile — sursa unică pentru computeMonth (ore/salariu) și exportul .ics
+function classifyDay(dateObj) {
+  const key = dayKey(dateObj.getFullYear(), dateObj.getMonth() + 1, dateObj.getDate());
+  if (coDays.has(key)) return { key, leave: 'co', shift: null, dubla: null };
+  if (cmDays.has(key)) return { key, leave: 'cm', shift: null, dubla: null };
+  const shift = isWorkedDay(dateObj) ? getShift(dateObj) : null;
+  const dubla = (key in doubleDays)
+    ? { ore: getDoubleOre(key), tip: getDoubleTip(key, dateObj) }
+    : null;
+  return { key, leave: null, shift, dubla };
+}
+
 // Dubla = o singură zi lucrată plătită payPerShift × doubleMultiplier, fie peste
 // o tură existentă, fie pe o zi liberă (chemat la muncă). Pe CO/CM e ignorată
 // (păstrată în date). Orele dublei apar doar la ore suplimentare.
@@ -672,22 +744,19 @@ function computeMonth(year, month) {
   const r = { oreLucrate: 0, oreCo: 0, oreCm: 0, zileLucrate: 0, tureNormale: 0, duble: 0, oreSuplDuble: 0 };
 
   for (let d = 1; d <= days; d++) {
-    const dateObj = new Date(year, month, d);
-    const key = dayKey(year, month + 1, d);
+    const c = classifyDay(new Date(year, month, d));
 
-    if (coDays.has(key)) {
+    if (c.leave === 'co') {
       r.oreCo += 8;
-    } else if (cmDays.has(key)) {
+    } else if (c.leave === 'cm') {
       r.oreCm += 8;
     } else {
-      const worked = isWorkedDay(dateObj);
-      const dubla  = key in doubleDays;
-      if (worked) r.oreLucrate += oreZi;
-      if (worked || dubla) r.zileLucrate++;
-      if (dubla) {
+      if (c.shift) r.oreLucrate += oreZi;
+      if (c.shift || c.dubla) r.zileLucrate++;
+      if (c.dubla) {
         r.duble++;
-        r.oreSuplDuble += getDoubleOre(key);
-      } else if (worked) {
+        r.oreSuplDuble += c.dubla.ore;
+      } else if (c.shift) {
         r.tureNormale++;
       }
     }
@@ -838,6 +907,245 @@ function toggleFilter(type) {
 // ===== PRINT =====
 function doPrint() {
   window.print();
+}
+
+// ===== Funcții Premium (flag) =====
+// Marcaj pentru funcțiile care vor fi Premium. Deocamdată totul e deblocat pentru
+// toți (testare) — plata/blocarea nu sunt implementate încă.
+const PREMIUM_FEATURES = { icsExport: true };
+function isPremiumFeature(name) { return !!PREMIUM_FEATURES[name]; }
+function isFeatureUnlocked(name) { return true; }
+
+// ===== EXPORT CALENDAR (.ics, RFC 5545) =====
+// Ore cu TZID=Europe/Bucharest + VTIMEZONE (reguli UE de oră de vară), ca
+// evenimentele să rămână la ora locală corectă pe iPhone/Google/Android
+// chiar dacă telefonul e în alt fus orar.
+const ICS_TZ = 'Europe/Bucharest';
+const ICS_VTIMEZONE = [
+  'BEGIN:VTIMEZONE',
+  'TZID:Europe/Bucharest',
+  'X-LIC-LOCATION:Europe/Bucharest',
+  'BEGIN:DAYLIGHT',
+  'TZOFFSETFROM:+0200',
+  'TZOFFSETTO:+0300',
+  'TZNAME:EEST',
+  'DTSTART:19700329T030000',
+  'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU',
+  'END:DAYLIGHT',
+  'BEGIN:STANDARD',
+  'TZOFFSETFROM:+0300',
+  'TZOFFSETTO:+0200',
+  'TZNAME:EET',
+  'DTSTART:19701025T040000',
+  'RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU',
+  'END:STANDARD',
+  'END:VTIMEZONE',
+];
+
+const pad2 = n => String(n).padStart(2, '0');
+
+function icsEscape(text) {
+  return String(text)
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\r?\n/g, '\\n');
+}
+
+// Împăturire la 75 de octeți (UTF-8), fără a tăia un caracter multi-octet
+function icsFold(line) {
+  const enc = new TextEncoder();
+  if (enc.encode(line).length <= 75) return line;
+  const parts = [];
+  let cur = '', curBytes = 0, limit = 75;
+  for (const ch of line) {
+    const b = enc.encode(ch).length;
+    if (curBytes + b > limit) {
+      parts.push(cur);
+      cur = ''; curBytes = 0; limit = 74; // liniile de continuare încep cu un spațiu
+    }
+    cur += ch; curBytes += b;
+  }
+  parts.push(cur);
+  return parts.join('\r\n ');
+}
+
+function minutesOf(hhmm) {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+}
+
+// Dată-oră „de perete” (fără fus) → YYYYMMDDTHHMMSS; aritmetica e în UTC ca
+// să nu fie afectată de fusul/ora de vară a telefonului.
+function icsLocal(y, m, d, minutes) {
+  const t = new Date(Date.UTC(y, m, d, 0, minutes));
+  return `${t.getUTCFullYear()}${pad2(t.getUTCMonth() + 1)}${pad2(t.getUTCDate())}T${pad2(t.getUTCHours())}${pad2(t.getUTCMinutes())}00`;
+}
+
+function icsDate(y, m, d) {
+  const t = new Date(Date.UTC(y, m, d));
+  return `${t.getUTCFullYear()}${pad2(t.getUTCMonth() + 1)}${pad2(t.getUTCDate())}`;
+}
+
+function icsUtcStamp(date) {
+  return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+}
+
+// Alarma sună la ora aleasă în ziua turei → TRIGGER relativ față de start.
+// Dacă ora alarmei nu e înainte de start, alarma e în seara precedentă.
+function alarmOffsetMin(startMin, alarmHHMM) {
+  let diff = startMin - minutesOf(alarmHHMM);
+  if (diff <= 0) diff += 24 * 60;
+  return diff;
+}
+
+function icsAlarm(offsetMin, text) {
+  return [
+    'BEGIN:VALARM',
+    'ACTION:DISPLAY',
+    `DESCRIPTION:${icsEscape(text)}`,
+    `TRIGGER:-PT${offsetMin}M`,
+    'END:VALARM',
+  ];
+}
+
+// Evenimentele dintr-un interval de luni, din aceeași sursă ca zilele lucrate (classifyDay)
+function buildIcsEvents(year, month, monthsCount) {
+  const events = [];
+  const oreTura = getOrePerZi();
+  for (let i = 0; i < monthsCount; i++) {
+    const y = new Date(year, month + i, 1).getFullYear();
+    const m = new Date(year, month + i, 1).getMonth();
+    const days = new Date(y, m + 1, 0).getDate();
+    for (let d = 1; d <= days; d++) {
+      const c = classifyDay(new Date(y, m, d));
+      const iso = `${y}-${pad2(m + 1)}-${pad2(d)}`;
+      if (c.leave) {
+        if (icsSettings.includeLeave) events.push({ allDay: true, y, m, d, uid: `${iso}-${c.leave}`, summary: c.leave.toUpperCase() });
+        continue;
+      }
+      if (c.shift) {
+        const tip = c.shift.type; // 'zi' | 'noapte'
+        events.push({ y, m, d, tip, durMin: oreTura * 60, uid: `${iso}-${tip}`, summary: tip === 'zi' ? 'Tură zi' : 'Tură noapte' });
+      }
+      if (c.dubla) {
+        const tip = c.dubla.tip;
+        events.push({ y, m, d, tip, durMin: (c.dubla.ore || DOUBLE_ORE_DEFAULT) * 60, uid: `${iso}-dubla-${tip}`, summary: tip === 'zi' ? 'Dublă zi' : 'Dublă noapte' });
+      }
+    }
+  }
+  return events;
+}
+
+function buildIcs(events) {
+  const stamp = icsUtcStamp(new Date());
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//calculatorture.ro//Calculator Ture//RO',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'X-WR-CALNAME:Ture',
+    `X-WR-TIMEZONE:${ICS_TZ}`,
+    ...ICS_VTIMEZONE,
+  ];
+
+  for (const ev of events) {
+    lines.push('BEGIN:VEVENT', `UID:${ev.uid}@calculatorture.ro`, `DTSTAMP:${stamp}`);
+    if (ev.allDay) {
+      lines.push(
+        `DTSTART;VALUE=DATE:${icsDate(ev.y, ev.m, ev.d)}`,
+        `DTEND;VALUE=DATE:${icsDate(ev.y, ev.m, ev.d + 1)}`,
+        `SUMMARY:${icsEscape(ev.summary)}`,
+        'TRANSP:TRANSPARENT',
+      );
+    } else {
+      const startHHMM = ev.tip === 'zi' ? icsSettings.dayStart : icsSettings.nightStart;
+      const startMin  = minutesOf(startHHMM);
+      const alarm1    = alarmOffsetMin(startMin, ev.tip === 'zi' ? icsSettings.alarmDay : icsSettings.alarmNight);
+      lines.push(
+        `DTSTART;TZID=${ICS_TZ}:${icsLocal(ev.y, ev.m, ev.d, startMin)}`,
+        `DTEND;TZID=${ICS_TZ}:${icsLocal(ev.y, ev.m, ev.d, startMin + ev.durMin)}`,
+        `SUMMARY:${icsEscape(ev.summary)}`,
+        `DESCRIPTION:${icsEscape(`${ev.summary}, start la ${startHHMM}. Generat de calculatorture.ro; dacă schimbi turele, exportă din nou.`)}`,
+        ...icsAlarm(alarm1, `${ev.summary} la ${startHHMM}`),
+      );
+      if (icsSettings.alarm2) {
+        lines.push(...icsAlarm(alarm1 + icsSettings.alarm2Min, `${ev.summary} la ${startHHMM}`));
+      }
+    }
+    lines.push('END:VEVENT');
+  }
+
+  lines.push('END:VCALENDAR');
+  return lines.map(icsFold).join('\r\n') + '\r\n';
+}
+
+function showIcsStatus(msg, type) {
+  const el = document.getElementById('ics-status');
+  el.textContent = msg;
+  el.className = 'push-status' + (type ? ' ' + type : '');
+  el.style.display = 'block';
+}
+
+// Descărcare: link <a download> cu Blob. În aplicația instalată pe iPhone
+// (ecran principal) descărcarea din Blob nu funcționează → Web Share cu fișier.
+async function deliverIcsFile(text, filename) {
+  const blob = new Blob([text], { type: 'text/calendar;charset=utf-8' });
+  let file = null;
+  try { file = new File([blob], filename, { type: 'text/calendar' }); } catch { /* File indisponibil */ }
+  const canShareFile = !!(file && navigator.canShare && navigator.canShare({ files: [file] }));
+
+  if (isIOSDevice() && isStandalonePWA() && canShareFile) {
+    await navigator.share({ files: [file], title: 'Ture' });
+    return 'share';
+  }
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    return 'download';
+  } catch (err) {
+    if (!canShareFile) throw err;
+    await navigator.share({ files: [file], title: 'Ture' });
+    return 'share';
+  }
+}
+
+async function exportIcs() {
+  if (!isFeatureUnlocked('icsExport')) return;
+  readIcsInputs();
+  const monthsCount = parseInt(document.getElementById('ics-range').value, 10) || 1;
+  const events = buildIcsEvents(viewYear, viewMonth, monthsCount);
+  const withAlarm = events.filter(e => !e.allDay).length;
+  if (events.length === 0) {
+    showIcsStatus('Nu există ture în perioada aleasă. Setează mai întâi tiparul de tură.', 'error');
+    return;
+  }
+  const filename = `ture-${viewYear}-${pad2(viewMonth + 1)}${monthsCount > 1 ? '-' + monthsCount + 'luni' : ''}.ics`;
+  try {
+    const how = await deliverIcsFile(buildIcs(events), filename);
+    showIcsStatus(`✓ ${events.length} evenimente ${how === 'share' ? 'trimise' : 'exportate'} (${withAlarm} cu alarmă).`, 'success');
+    if (typeof window.gtag === 'function') gtag('event', 'export_ics', { luni: monthsCount });
+  } catch (err) {
+    if (err && err.name === 'AbortError') return; // utilizatorul a închis fereastra de partajare
+    console.error('Eroare export .ics:', err);
+    showIcsStatus('Nu am putut crea fișierul. Încearcă din nou.', 'error');
+  }
+}
+
+function toggleIcsPanel() {
+  const panel = document.getElementById('ics-panel');
+  const open  = panel.style.display === 'none';
+  panel.style.display = open ? 'block' : 'none';
+  const btn = document.getElementById('btn-ics-toggle');
+  btn.textContent = '📅 Exportă în calendar' + (open ? ' ▴' : ' ▾');
+  btn.classList.toggle('active-edit-tura', open);
 }
 
 // ===== PDF FREEMIUM =====
@@ -1033,6 +1341,9 @@ document.getElementById('btn-apply-tura').addEventListener('click', () => setEdi
 document.getElementById('day-double-check').addEventListener('change', onDayDoubleToggle);
 document.getElementById('day-double-ore').addEventListener('change', onDayDoubleOreChange);
 document.getElementById('day-double-tip').addEventListener('change', onDayDoubleTipChange);
+document.querySelectorAll('.ics-setting').forEach(el => {
+  el.addEventListener('change', () => { readIcsInputs(); saveSettings(); });
+});
 document.getElementById('day-modal-action').addEventListener('click', onDayPanelAction);
 document.getElementById('day-modal').addEventListener('click', (e) => {
   if (e.target.id === 'day-modal') closeDayPanel();
