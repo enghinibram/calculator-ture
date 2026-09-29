@@ -57,6 +57,12 @@ function resolvePremiumState(attrs) {
   return { isPremium: false, expiresAt: attrs.ends_at || null };
 }
 
+// Eroare de la Supabase: păstrăm doar operația și codul HTTP. Corpul
+// răspunsului NU se citește și nu intră în mesaj (poate conține date interne).
+function supabaseError(op, status) {
+  return Object.assign(new Error(`${op} a eșuat: HTTP ${status}`), { op, status });
+}
+
 async function findUserIdByEmail(supabaseUrl, supabaseSecretKey, email) {
   const res = await fetch(`${supabaseUrl}/rest/v1/rpc/get_user_id_by_email`, {
     method: 'POST',
@@ -68,7 +74,7 @@ async function findUserIdByEmail(supabaseUrl, supabaseSecretKey, email) {
     body: JSON.stringify({ lookup_email: email }),
   });
   if (!res.ok) {
-    throw new Error(`RPC get_user_id_by_email a eșuat: ${res.status} ${await res.text()}`);
+    throw supabaseError('findUserIdByEmail', res.status);
   }
   return res.json(); // uuid string sau null
 }
@@ -85,7 +91,7 @@ async function upsertPremiumStatus(supabaseUrl, supabaseSecretKey, row) {
     body: JSON.stringify(row),
   });
   if (!res.ok) {
-    throw new Error(`Upsert premium_status a eșuat: ${res.status} ${await res.text()}`);
+    throw supabaseError('upsertPremiumStatus', res.status);
   }
 }
 
@@ -192,10 +198,15 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ ok: true, email, plan, isPremium });
   } catch (err) {
-    // Logăm doar tipul și codul erorii (ex. TypeError / ECONNREFUSED, ENOTFOUND).
-    // NU logăm err.message: la un antet invalid, fetch pune în mesaj valoarea
-    // antetului, adică cheia secretă Supabase (verificat cu Node 24).
-    console.error('lemonsqueezy-webhook error:', err?.name ?? 'Error', err?.code ?? err?.cause?.code ?? null);
+    // Logăm doar tipul și codul erorii (ex. TypeError / ECONNREFUSED, ENOTFOUND),
+    // iar la erorile Supabase operația și codul HTTP. NU logăm err.message: la un
+    // antet invalid, fetch pune în mesaj valoarea antetului, adică cheia secretă
+    // Supabase (verificat cu Node 24). Nici corpul răspunsului sau antetele.
+    if (err?.op) {
+      console.error('lemonsqueezy-webhook error:', `op=${err.op}`, `status=${err.status}`);
+    } else {
+      console.error('lemonsqueezy-webhook error:', err?.name ?? 'Error', err?.code ?? err?.cause?.code ?? null);
+    }
     return res.status(500).json({ error: 'Eroare internă.' });
   }
 }
