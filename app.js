@@ -510,6 +510,33 @@ function describeShift(dateObj) {
   return (sh.label === 'A' ? 'Tură de după-amiază' : 'Tură de noapte') + ` · ${ore}h`;
 }
 
+// Format double_days (compatibil cu datele vechi):
+//   număr        → dublă peste o tură existentă (ore suplimentare)
+//   { ore, tip } → dublă pe zi liberă (chemat la muncă), tip = 'zi' | 'noapte'
+function getDoubleOre(key) {
+  const v = doubleDays[key];
+  return Number(v && typeof v === 'object' ? v.ore : v) || 0;
+}
+
+// Implicit: Noapte în prima zi liberă după o tură de noapte, altfel Zi
+function defaultDoubleTip(dateObj) {
+  const prev = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate() - 1);
+  const sh = getShift(prev);
+  return (isWorkedDay(prev) && sh.type === 'noapte' && sh.label !== 'A') ? 'noapte' : 'zi';
+}
+
+function getDoubleTip(key, dateObj) {
+  const v = doubleDays[key];
+  if (v && typeof v === 'object' && (v.tip === 'zi' || v.tip === 'noapte')) return v.tip;
+  return defaultDoubleTip(dateObj);
+}
+
+function setDouble(key, dateObj, ore, tip) {
+  doubleDays[key] = isWorkedDay(dateObj)
+    ? ore
+    : { ore, tip: tip || getDoubleTip(key, dateObj) };
+}
+
 function renderDayPanel() {
   if (!panelDay) return;
   const { y, m, d } = panelDay;
@@ -536,30 +563,41 @@ function renderDayPanel() {
 
   const check = document.getElementById('day-double-check');
   check.checked  = isDubla;
-  check.disabled = !worked && !isDubla; // o dublă veche poate fi mereu debifată
+  check.disabled = isLeave && !isDubla; // blocată doar pe CO/CM; o dublă veche poate fi mereu debifată
 
   const oreInp = document.getElementById('day-double-ore');
-  oreInp.value = isDubla ? doubleDays[key] : DOUBLE_ORE_DEFAULT;
+  oreInp.value = isDubla ? getDoubleOre(key) : DOUBLE_ORE_DEFAULT;
   document.getElementById('day-double-ore-row').style.display = isDubla ? 'flex' : 'none';
 
+  // Tipul dublei (Zi/Noapte) doar pentru dublă pe zi liberă
+  const onFreeDay = isDubla && !worked && !isLeave;
+  document.getElementById('day-double-tip-row').style.display = onFreeDay ? 'flex' : 'none';
+  if (onFreeDay) document.getElementById('day-double-tip').value = getDoubleTip(key, dateObj);
+
+  const plataDubla = `${payPerShift} × ${doubleMultiplier} = ${payPerShift * doubleMultiplier} lei`;
   const note = document.getElementById('day-double-note');
-  if (!worked) {
+  if (isLeave) {
     note.textContent = isDubla
-      ? 'Ziua nu mai e lucrată, deci dubla nu se ia în calcul.'
-      : 'Dubla se poate marca doar pe o zi lucrată.';
+      ? 'Ziua e CO/CM, deci dubla nu se ia în calcul.'
+      : 'Dubla nu se poate marca pe o zi de CO/CM.';
+  } else if (onFreeDay) {
+    note.textContent = `Chemat într-o zi liberă: plata zilei ${plataDubla} (o zi lucrată).`;
   } else if (isDubla) {
-    note.textContent = `Plata zilei: ${payPerShift} × ${doubleMultiplier} = ${payPerShift * doubleMultiplier} lei (o singură zi lucrată).`;
-  } else {
+    note.textContent = `Plata zilei: ${plataDubla} (o singură zi lucrată).`;
+  } else if (worked) {
     note.textContent = `Plata zilei: ${payPerShift} lei.`;
+  } else {
+    note.textContent = 'Zi liberă. Bifează „Dublă” dacă ai fost chemat la muncă.';
   }
 }
 
 function onDayDoubleToggle() {
   if (!panelDay) return;
   const key = dayKey(panelDay.y, panelDay.m + 1, panelDay.d);
+  const dateObj = new Date(panelDay.y, panelDay.m, panelDay.d);
   if (document.getElementById('day-double-check').checked) {
     const ore = parseFloat(document.getElementById('day-double-ore').value);
-    doubleDays[key] = ore > 0 ? ore : DOUBLE_ORE_DEFAULT;
+    setDouble(key, dateObj, ore > 0 ? ore : DOUBLE_ORE_DEFAULT);
   } else {
     delete doubleDays[key];
   }
@@ -571,7 +609,16 @@ function onDayDoubleOreChange() {
   const key = dayKey(panelDay.y, panelDay.m + 1, panelDay.d);
   if (!(key in doubleDays)) return;
   const ore = parseFloat(document.getElementById('day-double-ore').value);
-  doubleDays[key] = ore > 0 ? ore : DOUBLE_ORE_DEFAULT;
+  setDouble(key, new Date(panelDay.y, panelDay.m, panelDay.d), ore > 0 ? ore : DOUBLE_ORE_DEFAULT);
+  recalc(); saveSettings(); renderDayPanel();
+}
+
+function onDayDoubleTipChange() {
+  if (!panelDay) return;
+  const key = dayKey(panelDay.y, panelDay.m + 1, panelDay.d);
+  if (!(key in doubleDays)) return;
+  setDouble(key, new Date(panelDay.y, panelDay.m, panelDay.d), getDoubleOre(key) || DOUBLE_ORE_DEFAULT,
+            document.getElementById('day-double-tip').value);
   recalc(); saveSettings(); renderDayPanel();
 }
 
@@ -616,8 +663,9 @@ function isWorkedDay(dateObj) {
   return !!(sh && (sh.type === 'zi' || sh.type === 'noapte'));
 }
 
-// Dublele contează doar pe zile lucrate; o dublă rămasă pe o zi devenită
-// liberă/CO/CM e păstrată în date dar ignorată la calcul.
+// Dubla = o singură zi lucrată plătită payPerShift × doubleMultiplier, fie peste
+// o tură existentă, fie pe o zi liberă (chemat la muncă). Pe CO/CM e ignorată
+// (păstrată în date). Orele dublei apar doar la ore suplimentare.
 function computeMonth(year, month) {
   const days  = new Date(year, month + 1, 0).getDate();
   const oreZi = getOrePerZi();
@@ -631,13 +679,15 @@ function computeMonth(year, month) {
       r.oreCo += 8;
     } else if (cmDays.has(key)) {
       r.oreCm += 8;
-    } else if (isWorkedDay(dateObj)) {
-      r.oreLucrate += oreZi;
-      r.zileLucrate++;
-      if (key in doubleDays) {
+    } else {
+      const worked = isWorkedDay(dateObj);
+      const dubla  = key in doubleDays;
+      if (worked) r.oreLucrate += oreZi;
+      if (worked || dubla) r.zileLucrate++;
+      if (dubla) {
         r.duble++;
-        r.oreSuplDuble += Number(doubleDays[key]) || 0;
-      } else {
+        r.oreSuplDuble += getDoubleOre(key);
+      } else if (worked) {
         r.tureNormale++;
       }
     }
@@ -687,6 +737,16 @@ function renderSalariu(m, show) {
   set('sal-total',        Math.round(m.salariu * 100) / 100);
 }
 
+// Secțiuni pliabile (Detalii / Setări plată) — starea nu se salvează, implicit închise
+function toggleSalariuPanel(name) {
+  const panel = document.getElementById('sal-panel-' + name);
+  const open  = panel.style.display === 'none';
+  panel.style.display = open ? (name === 'detalii' ? 'grid' : 'block') : 'none';
+  const btn = document.getElementById('btn-sal-' + name);
+  btn.textContent = (name === 'detalii' ? 'Detalii' : 'Setări plată') + (open ? ' ▴' : ' ▾');
+  btn.classList.toggle('active-edit-tura', open);
+}
+
 function updateCoBadge() {
   const totalCo = coDays.size;
   const totalCm = cmDays.size;
@@ -722,7 +782,8 @@ function renderCal() {
     const key     = dayKey(year, month + 1, d);
     const isCo    = coDays.has(key);
     const isCm    = cmDays.has(key);
-    const isDubla = (key in doubleDays) && isWorkedDay(dateObj);
+    const isDubla = (key in doubleDays) && !isCo && !isCm;
+    const dublaLibera = isDubla && !isWorkedDay(dateObj);
 
     let cls = 'day';
     if (isCo)       cls += ' co';
@@ -738,7 +799,9 @@ function renderCal() {
     // În mod custom, zilele lucrătoare au cursor diferit
     if (isCustomMode() && !isCo && !isCm) cls += ' custom-clickable';
 
-    const badge    = (!isCo && !isCm && sh && sh.label) ? `<span class="shift-badge">${sh.label}</span>` : '';
+    const badge    = dublaLibera
+      ? `<span class="shift-badge">${getDoubleTip(key, dateObj) === 'noapte' ? 'N' : 'Z'}</span>`
+      : (!isCo && !isCm && sh && sh.label) ? `<span class="shift-badge">${sh.label}</span>` : '';
     const coBadge  = isCo ? `<span class="hol-name hol-co">CO</span>` : '';
     const cmBadge  = isCm ? `<span class="hol-name hol-cm">CM</span>` : '';
     const dblBadge = isDubla ? `<span class="hol-name hol-dubla">DUBLĂ</span>` : '';
@@ -969,6 +1032,7 @@ document.getElementById('btn-apply-tura').addEventListener('click', () => setEdi
 });
 document.getElementById('day-double-check').addEventListener('change', onDayDoubleToggle);
 document.getElementById('day-double-ore').addEventListener('change', onDayDoubleOreChange);
+document.getElementById('day-double-tip').addEventListener('change', onDayDoubleTipChange);
 document.getElementById('day-modal-action').addEventListener('click', onDayPanelAction);
 document.getElementById('day-modal').addEventListener('click', (e) => {
   if (e.target.id === 'day-modal') closeDayPanel();

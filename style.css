@@ -924,18 +924,33 @@ select:focus { outline: none; border-color: var(--accent); }
   cursor: pointer;
 }
 .day-double-row input { width: 18px; height: 18px; accent-color: var(--accent); }
-#day-double-ore-row { margin-bottom: 0; }
+#day-double-ore-row, #day-double-tip-row { margin-bottom: 0; }
+.day-double-tip { width: auto; min-width: 120px; padding: 6px 32px 6px 10px; }
 @media print {
   .apply-tura-btn, #day-modal { display: none !important; }
 }
 
 /* ===== Salariu pe ture ===== */
-.salariu-section { margin-top: 1.25rem; }
-.salariu-settings { display: flex; flex-wrap: wrap; gap: 0 16px; }
-.salariu-input { width: 84px; }
-.salariu-stats { grid-template-columns: repeat(2, 1fr); margin-top: 0.5rem; }
-.salariu-stats .salariu-total { grid-column: 1 / -1; }
-.salariu-total .stat-val { color: var(--accent); }
+.salariu-section { margin-top: 10px; }
+.salariu-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  text-align: left;
+}
+.salariu-total .stat-lbl { margin-top: 0; font-size: 12px; }
+.salariu-total .stat-val { color: var(--accent); font-size: 20px; white-space: nowrap; }
+.salariu-total .stat-val small { font-size: 12px; font-weight: 600; }
+.salariu-toggles { display: flex; gap: 6px; margin-top: 6px; }
+.salariu-toggles .co-cm-btn { padding: 4px 12px; }
+.salariu-stats { grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 6px; }
+.salariu-stats .stat { padding: 8px 4px; }
+.salariu-stats .stat-val { font-size: 17px; }
+.salariu-settings { margin-top: 6px; }
+.salariu-settings .custom-ore-row { margin-bottom: 6px; }
+.salariu-input { width: 84px; padding: 6px 8px; font-size: 15px; }
 @media print {
-  .salariu-settings { display: none !important; }
+  .salariu-toggles, .salariu-settings { display: none !important; }
 }

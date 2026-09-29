@@ -225,11 +225,18 @@
       <button class="auth-btn secondary" id="day-modal-action"></button>
       <label class="day-double-row">
         <input type="checkbox" id="day-double-check" />
-        Dublă (ore suplimentare peste tura normală)
+        Dublă (ore suplimentare)
       </label>
       <div id="day-double-ore-row" class="custom-ore-row" style="display:none">
         <input type="number" id="day-double-ore" class="custom-ore-input" value="12" min="1" max="24" step="1" />
         <span class="custom-ore-label">ore suplimentare</span>
+      </div>
+      <div id="day-double-tip-row" class="custom-ore-row" style="display:none">
+        <span class="custom-ore-label">Tipul dublei</span>
+        <select id="day-double-tip" class="day-double-tip">
+          <option value="zi">Zi</option>
+          <option value="noapte">Noapte</option>
+        </select>
       </div>
       <p class="custom-hint" id="day-double-note"></p>
       <button class="auth-btn" onclick="closeDayPanel()">Gata</button>
@@ -354,8 +361,21 @@
 
     <!-- Salariu pe ture -->
     <div class="section salariu-section">
-      <label>Salariu pe ture (luna afișată)</label>
-      <div class="salariu-settings">
+      <div class="stat salariu-total">
+        <div class="stat-lbl">Salariu pe ture (luna afișată)</div>
+        <div class="stat-val"><span id="sal-total">—</span> <small>lei</small></div>
+      </div>
+      <div class="salariu-toggles">
+        <button class="co-cm-btn" id="btn-sal-detalii" onclick="toggleSalariuPanel('detalii')">Detalii ▾</button>
+        <button class="co-cm-btn" id="btn-sal-setari" onclick="toggleSalariuPanel('setari')">Setări plată ▾</button>
+      </div>
+      <div id="sal-panel-detalii" class="stats salariu-stats" style="display:none">
+        <div class="stat"><div class="stat-val" id="sal-ture-normale">—</div><div class="stat-lbl">ture normale</div></div>
+        <div class="stat"><div class="stat-val" id="sal-duble">—</div><div class="stat-lbl">duble</div></div>
+        <div class="stat"><div class="stat-val" id="sal-ore-supl">—</div><div class="stat-lbl">ore suplimentare</div></div>
+        <div class="stat"><div class="stat-val" id="sal-zile-lucrate">—</div><div class="stat-lbl">zile lucrate</div></div>
+      </div>
+      <div id="sal-panel-setari" class="salariu-settings" style="display:none">
         <div class="custom-ore-row">
           <input type="number" id="pay-per-shift" class="custom-ore-input salariu-input" value="200" min="0" step="10" />
           <span class="custom-ore-label">lei / tură normală</span>
@@ -364,13 +384,6 @@
           <input type="number" id="double-multiplier" class="custom-ore-input salariu-input" value="2" min="0.1" step="0.1" />
           <span class="custom-ore-label">multiplicator dublă (2 = 200%)</span>
         </div>
-      </div>
-      <div class="stats salariu-stats">
-        <div class="stat"><div class="stat-val" id="sal-ture-normale">—</div><div class="stat-lbl">ture normale</div></div>
-        <div class="stat"><div class="stat-val" id="sal-duble">—</div><div class="stat-lbl">duble</div></div>
-        <div class="stat"><div class="stat-val" id="sal-ore-supl">—</div><div class="stat-lbl">ore suplimentare (duble)</div></div>
-        <div class="stat"><div class="stat-val" id="sal-zile-lucrate">—</div><div class="stat-lbl">zile lucrate</div></div>
-        <div class="stat salariu-total"><div class="stat-val" id="sal-total">—</div><div class="stat-lbl">total salariu (lei)</div></div>
       </div>
     </div>
 
