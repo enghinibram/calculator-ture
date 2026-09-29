@@ -1144,7 +1144,7 @@ function submitIcsForm(p) {
   form.remove();
 }
 
-const ICS_STANDALONE_MSG = 'Deschide aplicația în Safari ca să exporți în calendar.';
+const ICS_STANDALONE_MSG = 'Pe iPhone, exportul în Calendar merge din Safari. Deschide app.calculatorture.ro în Safari, loghează-te și apasă din nou Exportă în calendar.';
 
 function icsExportDone(p, how) {
   showIcsStatus(`✓ ${p.events.length} evenimente ${how} (${p.withAlarm} cu alarmă).`, 'success');
@@ -1162,18 +1162,9 @@ function exportIcs() {
 
   try {
     if (isIOSLike() && isStandalonePWA()) {
-      // Aplicația de pe ecranul principal: descărcările nu sunt suportate → partajare fișier
-      if (p.file && navigator.canShare && navigator.canShare({ files: [p.file] })) {
-        navigator.share({ files: [p.file] })
-          .then(() => icsExportDone(p, 'trimise'))
-          .catch(err => {
-            if (err && err.name === 'AbortError') return; // fereastra de partajare închisă
-            console.error('Eroare partajare .ics:', err);
-            showIcsStatus(ICS_STANDALONE_MSG, 'error');
-          });
-      } else {
-        showIcsStatus(ICS_STANDALONE_MSG, 'error');
-      }
+      // Aplicația de pe ecranul principal: iOS nu oferă Calendar nici la descărcare,
+      // nici în fereastra de partajare → trimitem utilizatorul în Safari.
+      showIcsStatus(ICS_STANDALONE_MSG);
       return;
     }
     if (isIOSLike()) {
