@@ -1,4 +1,4 @@
-const CACHE = 'ture-v34';
+const CACHE = 'ture-v36';
 const ASSETS = [
   '/',
   '/index.html',
@@ -6,10 +6,13 @@ const ASSETS = [
   '/app.js',
   '/manifest.json',
 ];
+// Biblioteca Supabase (versiune fixă, aceeași ca în index.html), ca aplicația
+// să pornească și fără rețea. Separat, ca o problemă a CDN-ului să nu blocheze instalarea.
+const SUPABASE_JS = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js';
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS))
+    caches.open(CACHE).then(c => c.addAll(ASSETS).then(() => c.add(SUPABASE_JS).catch(() => {})))
   );
   self.skipWaiting();
 });

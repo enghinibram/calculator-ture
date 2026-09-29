@@ -333,14 +333,118 @@ function applyDubleSettings(pay, mult) {
   if (multInp) multInp.value = doubleMultiplier;
 }
 
-function saveDubleLocal() {
-  if (currentUser) return; // cu cont, sursa e Supabase
+// ===== Copie locală a stării (ture-state), legată de cont =====
+// Cheia e 'ture-state:anon' sau 'ture-state:<user id>', ca alt cont de pe același
+// telefon să nu vadă datele altcuiva. Conținutul are același format ca rândul
+// din user_settings, deci se aplică cu aceeași funcție ca datele din Supabase.
+const LOCAL_STATE_PREFIX = 'ture-state:';
+let stateOwner = 'anon';
+
+function buildSettingsRow() {
+  const startStr = startDate
+    ? `${startDate.getFullYear()}-${String(startDate.getMonth()+1).padStart(2,'0')}-${String(startDate.getDate()).padStart(2,'0')}`
+    : null;
+  const shiftStartInput = document.getElementById('shift-start-time');
+  return {
+    start_date:        startStr,
+    tura_type:         document.getElementById('tura-type').value,
+    co_days:           serializeSet(coDays),
+    cm_days:           serializeSet(cmDays),
+    custom_days:       serializeSet(customDays),
+    custom_ore:        getCustomOre(),
+    shift_start_time:  shiftStartInput && shiftStartInput.value ? shiftStartInput.value : null,
+    double_days:       JSON.stringify(doubleDays),
+    pay_per_shift:     payPerShift,
+    double_multiplier: doubleMultiplier,
+    ics_settings:      JSON.stringify(icsSettings),
+  };
+}
+
+function saveLocalState() {
+  try { localStorage.setItem(LOCAL_STATE_PREFIX + stateOwner, JSON.stringify(buildSettingsRow())); }
+  catch { /* storage indisponibil */ }
+}
+
+function readLocalState(owner) {
   try {
-    localStorage.setItem(DUBLE_LOCAL_KEY, JSON.stringify({
-      double_days: doubleDays, pay_per_shift: payPerShift, double_multiplier: doubleMultiplier,
-      ics_settings: icsSettings,
-    }));
-  } catch { /* storage indisponibil */ }
+    const raw = localStorage.getItem(LOCAL_STATE_PREFIX + owner);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function removeLocalState(owner) {
+  try { localStorage.removeItem(LOCAL_STATE_PREFIX + owner); } catch { /* ignorăm */ }
+}
+
+// Starea goală (ca la prima deschidere)
+function resetState() {
+  startDate = null;
+  coDays = new Set(); cmDays = new Set(); customDays = new Set();
+  doubleDays = {};
+  payPerShift = null;
+  doubleMultiplier = 2;
+  icsSettings = { ...ICS_DEFAULTS };
+  const sel = document.getElementById('tura-type');
+  sel.value = sel.options[0].value;
+  const oreInp = document.getElementById('custom-ore-input');
+  if (oreInp) oreInp.value = 12;
+  const shiftInp = document.getElementById('shift-start-time');
+  if (shiftInp) shiftInp.value = '';
+  applyDubleSettings(null, doubleMultiplier);
+  applyIcsSettings(null);
+  editMode = null;
+  updateEditModeUI();
+  updateTuraTypeUI();
+}
+
+function restoreLocalState(owner) {
+  const row = readLocalState(owner);
+  if (row) { applySettingsRow(row); return true; }
+  if (owner === 'anon') loadDubleLocal(); // compatibilitate: cheia veche ture-duble
+  return false;
+}
+
+// Schimbă contul căruia îi aparține starea afișată
+function switchStateOwner(owner) {
+  if (owner === stateOwner) return;
+  const prev = stateOwner;
+  // Prima logare pe acest telefon: păstrăm ce s-a introdus fără cont (ca înainte)
+  const carryAnon = prev === 'anon' && !readLocalState(owner);
+  if (!carryAnon) {
+    resetState();
+    restoreLocalState(owner);
+  }
+  // La ieșirea din cont, copia contului nu rămâne pe telefon
+  if (prev !== 'anon' && owner === 'anon') removeLocalState(prev);
+  stateOwner = owner;
+}
+
+// Contul din sesiunea salvată local (citit sincron, înainte de primul desen)
+function getStoredSessionUserId() {
+  try {
+    const raw = localStorage.getItem(sb.auth.storageKey);
+    const s = raw && JSON.parse(raw);
+    return (s && (s.user?.id || s.currentSession?.user?.id)) || null;
+  } catch { return null; }
+}
+
+// ===== Luna afișată (păstrată 24h de la ultima deschidere) =====
+const VIEW_KEY = 'ture-view';
+const VIEW_TTL_MS = 24 * 60 * 60 * 1000;
+
+function saveViewMonth() {
+  try { localStorage.setItem(VIEW_KEY, JSON.stringify({ y: viewYear, m: viewMonth, ts: Date.now() })); }
+  catch { /* ignorăm */ }
+}
+
+function restoreViewMonth() {
+  try {
+    const v = JSON.parse(localStorage.getItem(VIEW_KEY));
+    if (v && Date.now() - v.ts < VIEW_TTL_MS && Number.isInteger(v.y) && v.m >= 0 && v.m <= 11) {
+      viewYear = v.y; viewMonth = v.m;
+    }
+  } catch { /* ignorăm */ }
+  saveViewMonth(); // marchează deschiderea de acum
 }
 
 function loadDubleLocal() {
@@ -414,64 +518,66 @@ async function saveDubleRemote() {
 
 // ===== Supabase: salvare =====
 async function saveSettings() {
-  saveDubleLocal();
+  saveLocalState();
   if (!currentUser) return;
-  const turaType = document.getElementById('tura-type').value;
-  const startStr = startDate
-    ? `${startDate.getFullYear()}-${String(startDate.getMonth()+1).padStart(2,'0')}-${String(startDate.getDate()).padStart(2,'0')}`
-    : null;
-  const shiftStartInput = document.getElementById('shift-start-time');
-  const shiftStartTime = shiftStartInput && shiftStartInput.value ? shiftStartInput.value : null;
+  const row = buildSettingsRow();
   await sb.from('user_settings').upsert({
     user_id:          currentUser.id,
-    start_date:       startStr,
-    tura_type:        turaType,
-    co_days:          serializeSet(coDays),
-    cm_days:          serializeSet(cmDays),
-    custom_days:      serializeSet(customDays),
-    custom_ore:       getCustomOre(),
-    shift_start_time: shiftStartTime,
+    start_date:       row.start_date,
+    tura_type:        row.tura_type,
+    co_days:          row.co_days,
+    cm_days:          row.cm_days,
+    custom_days:      row.custom_days,
+    custom_ore:       row.custom_ore,
+    shift_start_time: row.shift_start_time,
   }, { onConflict: 'user_id' });
   await saveDubleRemote();
   await saveIcsRemote();
 }
 
 // ===== Supabase: încărcare =====
+// Aplică un rând de setări (din Supabase sau din copia locală); câmpurile goale
+// păstrează valoarea curentă.
+function applySettingsRow(data) {
+  if (!data) return;
+  if (data.tura_type) {
+    document.getElementById('tura-type').value = data.tura_type;
+    updateTuraTypeUI();
+  }
+  if (data.start_date) {
+    const parts = data.start_date.split('-');
+    startDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    document.getElementById('start-info').textContent =
+      'Start tură de zi: ' +
+      startDate.toLocaleDateString('ro-RO', { weekday: 'long', day: 'numeric', month: 'long' }) +
+      ' · tiparul merge în ambele direcții';
+  }
+  if (data.co_days)     coDays     = deserializeSet(data.co_days);
+  if (data.cm_days)     cmDays     = deserializeSet(data.cm_days);
+  if (data.custom_days) customDays = deserializeSet(data.custom_days);
+  if (data.double_days) doubleDays = deserializeObj(data.double_days);
+  applyDubleSettings(data.pay_per_shift, data.double_multiplier);
+  if (data.ics_settings) applyIcsSettings(deserializeObj(data.ics_settings));
+  if (data.custom_ore) {
+    const inp = document.getElementById('custom-ore-input');
+    if (inp) inp.value = data.custom_ore;
+  }
+  if (data.shift_start_time) {
+    const inp = document.getElementById('shift-start-time');
+    if (inp) inp.value = data.shift_start_time.slice(0, 5); // "HH:MM:SS" -> "HH:MM"
+  }
+}
+
 async function loadSettings() {
   if (!currentUser) return;
-  const { data } = await sb
+  const { data, error } = await sb
     .from('user_settings')
     .select('*')
     .eq('user_id', currentUser.id)
     .maybeSingle();
-  if (data) {
-    if (data.tura_type) {
-      document.getElementById('tura-type').value = data.tura_type;
-      updateTuraTypeUI();
-    }
-    if (data.start_date) {
-      const parts = data.start_date.split('-');
-      startDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-      document.getElementById('start-info').textContent =
-        'Start tură de zi: ' +
-        startDate.toLocaleDateString('ro-RO', { weekday: 'long', day: 'numeric', month: 'long' }) +
-        ' · tiparul merge în ambele direcții';
-    }
-    if (data.co_days)     coDays     = deserializeSet(data.co_days);
-    if (data.cm_days)     cmDays     = deserializeSet(data.cm_days);
-    if (data.custom_days) customDays = deserializeSet(data.custom_days);
-    if (data.double_days) doubleDays = deserializeObj(data.double_days);
-    applyDubleSettings(data.pay_per_shift, data.double_multiplier);
-    if (data.ics_settings) applyIcsSettings(deserializeObj(data.ics_settings));
-    if (data.custom_ore) {
-      const inp = document.getElementById('custom-ore-input');
-      if (inp) inp.value = data.custom_ore;
-    }
-    if (data.shift_start_time) {
-      const inp = document.getElementById('shift-start-time');
-      if (inp) inp.value = data.shift_start_time.slice(0, 5); // "HH:MM:SS" -> "HH:MM"
-    }
-  }
+  if (error) { console.error('Eroare încărcare setări:', error); return; } // rămâne copia locală
+  applySettingsRow(data);
+  saveLocalState();
   recalc();
 }
 
@@ -908,6 +1014,7 @@ function changeMonth(dir) {
   viewMonth += dir;
   if (viewMonth > 11) { viewMonth = 0; viewYear++; }
   if (viewMonth < 0)  { viewMonth = 11; viewYear--; }
+  saveViewMonth();
   recalc();
 }
 
@@ -1769,8 +1876,6 @@ function updateUserBar(user) {
     btn.textContent = 'Intră în cont';
     btn.className   = 'user-btn';
     btn.onclick     = openAuth;
-    viewYear  = today.getFullYear();
-    viewMonth = today.getMonth();
     notice.style.display  = 'none';
     prevBtn.disabled = false;
     nextBtn.disabled = false;
@@ -1781,13 +1886,25 @@ function updateUserBar(user) {
 }
 
 // ===== Auth State =====
+// Supabase trimite SIGNED_IN/TOKEN_REFRESHED și la revenirea în aplicație;
+// reîncărcăm din Supabase doar la schimbarea contului, ca să nu suprascriem starea.
+let loadedUserId = null;
 sb.auth.onAuthStateChange(async (event, session) => {
   const user = session?.user ?? null;
-  updateUserBar(user);
-  if (user) {
-    await loadSettings();
-    await checkPremiumStatus();
+  if (!user && stateOwner !== 'anon') {
+    // Ieșire din cont: luna revine la cea curentă
+    viewYear  = today.getFullYear();
+    viewMonth = today.getMonth();
+    saveViewMonth();
   }
+  switchStateOwner(user ? user.id : 'anon');
+  updateUserBar(user);
+  if (!user) { loadedUserId = null; return; }
+  if (user.id === loadedUserId) return;
+  loadedUserId = user.id;
+  recalc(); // afișează imediat copia locală a contului
+  await loadSettings();
+  await checkPremiumStatus();
 });
 
 // ===== Premium status =====
@@ -1875,6 +1992,9 @@ async function doSetNewPassword() {
   history.replaceState(null, '', window.location.pathname);
 }
 
-loadDubleLocal();
+// Restaurare imediată din copia locală, înainte de primul desen; Supabase sincronizează apoi
+stateOwner = getStoredSessionUserId() || 'anon';
+restoreLocalState(stateOwner);
+restoreViewMonth();
 updateTuraTypeUI();
 recalc();
