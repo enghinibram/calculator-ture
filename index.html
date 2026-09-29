@@ -252,6 +252,39 @@
     <iframe id="salary-panel-frame" title="Calculator salariu net"></iframe>
   </div>
 
+  <!-- ===== MINI-JOC (opțional) ===== -->
+  <div id="game-invite" class="game-invite" style="display:none" role="dialog" aria-live="polite">
+    <span id="game-invite-text" class="game-invite-text"></span>
+    <div class="game-invite-actions">
+      <button class="co-cm-btn" id="game-invite-no">Nu</button>
+      <button class="co-cm-btn game-invite-yes" id="game-invite-yes">Da</button>
+    </div>
+  </div>
+
+  <div id="game-layer" class="game-layer" style="display:none">
+    <div class="game-bar">
+      <span class="game-stat">⏱ <b id="game-time">30</b>s</span>
+      <span class="game-stat">Nivel <b id="game-level">1</b></span>
+      <span class="game-stat">🎯 <b id="game-catches">0</b></span>
+      <button class="co-cm-btn game-exit" id="game-exit">Ieși</button>
+    </div>
+    <div id="game-arena" class="game-arena">
+      <p id="game-hint" class="game-hint">Atinge bulina!</p>
+      <div id="game-dot" class="game-dot"></div>
+    </div>
+    <div id="game-result" class="game-result" style="display:none">
+      <div class="auth-box game-result-box">
+        <h2 class="auth-title">Timp expirat!</h2>
+        <div class="stats game-result-stats">
+          <div class="stat"><div class="stat-val" id="game-res-level">1</div><div class="stat-lbl">nivel atins</div></div>
+          <div class="stat"><div class="stat-val" id="game-res-catches">0</div><div class="stat-lbl">prinderi</div></div>
+          <div class="stat"><div class="stat-val" id="game-res-best">0</div><div class="stat-lbl">cel mai bun scor</div></div>
+        </div>
+        <button class="auth-btn" id="game-close">Închide</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== USER DROPDOWN ===== -->
   <div id="user-dropdown" class="user-dropdown" style="display:none">
     <div class="dropdown-info">
@@ -396,6 +429,13 @@
         <div class="custom-ore-row">
           <input type="number" id="double-multiplier" class="custom-ore-input salariu-input" value="2" min="0.1" step="0.1" />
           <span class="custom-ore-label">multiplicator dublă (2 = 200%)</span>
+        </div>
+        <div class="game-settings">
+          <label class="day-double-row game-settings-toggle">
+            <input type="checkbox" id="game-invites-toggle" checked />
+            Invitații la mini-joc
+          </label>
+          <button class="co-cm-btn" id="btn-game-play">🎯 Joacă acum</button>
         </div>
       </div>
     </div>
@@ -558,6 +598,7 @@
   <!-- Versiune fixă, pusă în cache de sw.js ca aplicația să pornească și fără rețea -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js"></script>
   <script src="app.js"></script>
+  <script src="game.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js');

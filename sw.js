@@ -1,4 +1,4 @@
-const CACHE = 'ture-v40';
+const CACHE = 'ture-v42';
 const ASSETS = [
   '/',
   '/index.html',
@@ -7,6 +7,7 @@ const ASSETS = [
   '/manifest.json',
   '/calculator-salariu.html',
   '/article.css',
+  '/game.js',
 ];
 // Biblioteca Supabase (versiune fixă, aceeași ca în index.html), ca aplicația
 // să pornească și fără rețea. Separat, ca o problemă a CDN-ului să nu blocheze instalarea.
