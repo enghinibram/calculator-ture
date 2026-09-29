@@ -192,6 +192,10 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ ok: true, email, plan, isPremium });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    // Logăm doar tipul și codul erorii (ex. TypeError / ECONNREFUSED, ENOTFOUND).
+    // NU logăm err.message: la un antet invalid, fetch pune în mesaj valoarea
+    // antetului, adică cheia secretă Supabase (verificat cu Node 24).
+    console.error('lemonsqueezy-webhook error:', err?.name ?? 'Error', err?.code ?? err?.cause?.code ?? null);
+    return res.status(500).json({ error: 'Eroare internă.' });
   }
 }
