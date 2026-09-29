@@ -361,9 +361,13 @@
 
     <!-- Salariu pe ture -->
     <div class="section salariu-section">
-      <div class="stat salariu-total">
+      <div class="stat salariu-total" id="sal-total-box">
         <div class="stat-lbl">Salariu pe ture (luna afișată)</div>
         <div class="stat-val"><span id="sal-total">—</span> <small>lei</small></div>
+      </div>
+      <div class="stat salariu-total salariu-missing" id="sal-total-missing" style="display:none">
+        <div class="stat-lbl">Setează plata pe tură ca să vezi salariul</div>
+        <button class="co-cm-btn" onclick="openSalariuSetari()">Setări plată</button>
       </div>
       <div class="salariu-toggles">
         <button class="co-cm-btn" id="btn-sal-detalii" onclick="toggleSalariuPanel('detalii')">Detalii ▾</button>
@@ -377,7 +381,7 @@
       </div>
       <div id="sal-panel-setari" class="salariu-settings" style="display:none">
         <div class="custom-ore-row">
-          <input type="number" id="pay-per-shift" class="custom-ore-input salariu-input" value="200" min="0" step="10" />
+          <input type="number" id="pay-per-shift" class="custom-ore-input salariu-input" placeholder="ex: 200" min="0" step="10" />
           <span class="custom-ore-label">lei / tură normală</span>
         </div>
         <div class="custom-ore-row">

@@ -1,4 +1,4 @@
-const CACHE = 'ture-v32';
+const CACHE = 'ture-v34';
 const ASSETS = [
   '/',
   '/index.html',

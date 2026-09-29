@@ -969,3 +969,4 @@ select:focus { outline: none; border-color: var(--accent); }
 @media print {
   .ics-section { display: none !important; }
 }
+.salariu-missing .co-cm-btn { padding: 4px 12px; white-space: nowrap; }

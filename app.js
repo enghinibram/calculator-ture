@@ -21,7 +21,7 @@ let editMode = null;
 // Dubla NU e a doua tură: ziua se numără o dată, plătită cu payPerShift × doubleMultiplier.
 let doubleDays = {};
 const DOUBLE_ORE_DEFAULT = 12;
-let payPerShift = 200;      // lei / tură normală
+let payPerShift = null;     // lei / tură normală; null = necompletat (fără sumă afișată)
 let doubleMultiplier = 2;   // 2 = 200%
 const DUBLE_LOCAL_KEY = 'ture-duble'; // salvare locală pentru utilizatorii fără cont
 
@@ -329,7 +329,7 @@ function applyDubleSettings(pay, mult) {
   if (m > 0)  doubleMultiplier = m;
   const payInp  = document.getElementById('pay-per-shift');
   const multInp = document.getElementById('double-multiplier');
-  if (payInp)  payInp.value  = payPerShift;
+  if (payInp)  payInp.value  = payPerShift ?? '';
   if (multInp) multInp.value = doubleMultiplier;
 }
 
@@ -636,7 +636,11 @@ function renderDayPanel() {
 
   const plataDubla = `${payPerShift} × ${doubleMultiplier} = ${payPerShift * doubleMultiplier} lei`;
   const note = document.getElementById('day-double-note');
-  if (isLeave) {
+  if (payPerShift == null && !isLeave && (worked || isDubla)) {
+    note.textContent = isDubla
+      ? 'Dublă: o singură zi lucrată. Setează plata pe tură ca să vezi plata zilei.'
+      : 'Setează plata pe tură ca să vezi plata zilei.';
+  } else if (isLeave) {
     note.textContent = isDubla
       ? 'Ziua e CO/CM, deci dubla nu se ia în calcul.'
       : 'Dubla nu se poate marca pe o zi de CO/CM.';
@@ -762,7 +766,9 @@ function computeMonth(year, month) {
     }
   }
 
-  r.salariu = r.tureNormale * payPerShift + r.duble * payPerShift * doubleMultiplier;
+  r.salariu = payPerShift == null
+    ? null // plata necompletată → fără sumă
+    : r.tureNormale * payPerShift + r.duble * payPerShift * doubleMultiplier;
   return r;
 }
 
@@ -804,7 +810,15 @@ function renderSalariu(m, show) {
   set('sal-duble',        m.duble);
   set('sal-ore-supl',     m.oreSuplDuble);
   set('sal-zile-lucrate', m.zileLucrate);
-  set('sal-total',        Math.round(m.salariu * 100) / 100);
+  const missing = m.salariu == null;
+  document.getElementById('sal-total-box').style.display     = missing ? 'none' : 'flex';
+  document.getElementById('sal-total-missing').style.display = missing ? 'flex' : 'none';
+  if (!missing) set('sal-total', Math.round(m.salariu * 100) / 100);
+}
+
+function openSalariuSetari() {
+  if (document.getElementById('sal-panel-setari').style.display === 'none') toggleSalariuPanel('setari');
+  document.getElementById('pay-per-shift').focus();
 }
 
 // Secțiuni pliabile (Detalii / Setări plată) — starea nu se salvează, implicit închise
@@ -1375,8 +1389,9 @@ document.getElementById('btn-edit-cm').addEventListener('click', () => setEditMo
 document.getElementById('btn-apply-tura').addEventListener('click', () => setEditMode('tura'));
 ['pay-per-shift', 'double-multiplier'].forEach(id => {
   document.getElementById(id).addEventListener('change', () => {
-    applyDubleSettings(document.getElementById('pay-per-shift').value,
-                       document.getElementById('double-multiplier').value);
+    const payVal = document.getElementById('pay-per-shift').value;
+    if (payVal.trim() === '') payPerShift = null; // câmp golit → necompletat
+    applyDubleSettings(payVal, document.getElementById('double-multiplier').value);
     recalc(); saveSettings();
   });
 });
