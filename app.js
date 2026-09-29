@@ -1311,6 +1311,127 @@ function toggleIcsPanel() {
   btn.classList.toggle('active-edit-tura', open);
 }
 
+// ===== Salariu net în panou (aplicația instalată) =====
+// În aplicația de pe ecranul principal, navigarea spre calculator-salariu.html și
+// înapoi reîncarcă aplicația și pe iPhone se pierd datele. Deschidem pagina într-un
+// panou peste aplicație, care rămâne încărcată în spate. În browser, link normal.
+function isAppHomeLink(href) {
+  try {
+    const u = new URL(href, location.href);
+    return u.origin === location.origin && (u.pathname === '/' || u.pathname === '/index.html');
+  } catch { return false; }
+}
+
+function openSalaryPanel(url) {
+  const panel = document.getElementById('salary-panel');
+  const frame = document.getElementById('salary-panel-frame');
+  if (!frame.getAttribute('src')) frame.setAttribute('src', url);
+  panel.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  fitSalaryPanel();
+}
+
+function closeSalaryPanel() {
+  document.getElementById('salary-panel').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// Cu tastatura deschisă, panoul ia înălțimea zonei vizibile, ca și câmpurile să rămână accesibile
+function fitSalaryPanel() {
+  const panel = document.getElementById('salary-panel');
+  if (panel.style.display === 'none') return;
+  const vv = window.visualViewport;
+  panel.style.height = vv ? vv.height + 'px' : '';
+  panel.style.top    = vv ? vv.offsetTop + 'px' : '';
+}
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', fitSalaryPanel);
+  window.visualViewport.addEventListener('scroll', fitSalaryPanel);
+}
+
+document.addEventListener('click', (e) => {
+  if (!isStandalonePWA()) return;
+  const a = e.target.closest && e.target.closest('a[href]');
+  if (!a) return;
+  const u = new URL(a.getAttribute('href'), location.href);
+  if (u.origin === location.origin && u.pathname === '/calculator-salariu.html') {
+    e.preventDefault();
+    openSalaryPanel(u.pathname);
+  }
+});
+
+// Link-urile „← Calculator Ture” din panou doar închid panoul (fără reîncărcare)
+document.getElementById('salary-panel-frame').addEventListener('load', () => {
+  const frame = document.getElementById('salary-panel-frame');
+  let doc;
+  try { doc = frame.contentDocument; } catch { return; }
+  if (!doc) return;
+  if (isAppHomeLink(frame.contentWindow.location.href)) { // a ajuns totuși la aplicație
+    closeSalaryPanel();
+    frame.setAttribute('src', '/calculator-salariu.html');
+    return;
+  }
+  doc.addEventListener('click', (e) => {
+    const a = e.target.closest && e.target.closest('a[href]');
+    if (a && isAppHomeLink(a.href)) {
+      e.preventDefault();
+      closeSalaryPanel();
+    }
+  });
+});
+
+// ===== TEMPORAR: indicator de diagnostic =====
+// Pornit cu ?debug=1 (oprit cu ?debug=0) sau cu 5 atingeri pe titlu; ținut minte
+// în localStorage, ca să apară și la pornirile aplicației de pe ecranul principal.
+const DEBUG_KEY = 'ture-debug';
+let debugAuthLine = 'auth: se așteaptă…';
+
+function isDebugOn() {
+  try { return localStorage.getItem(DEBUG_KEY) === '1'; } catch { return false; }
+}
+
+async function renderDebug() {
+  const box = document.getElementById('debug-box');
+  if (!isDebugOn()) { box.style.display = 'none'; return; }
+  let keys = [];
+  try { keys = Object.keys(localStorage).filter(k => k.startsWith(LOCAL_STATE_PREFIX)); } catch { /* */ }
+  const sessionId = getStoredSessionUserId();
+  let sessionRaw = false;
+  try { sessionRaw = !!localStorage.getItem(sb.auth.storageKey); } catch { /* */ }
+  const nav = (performance.getEntriesByType('navigation')[0] || {}).type || '?';
+  let cache = '?';
+  try { cache = (await caches.keys()).join(',') || 'niciunul'; } catch { /* */ }
+  const short = id => id === 'anon' ? 'anon' : id.slice(0, 8) + '…';
+  box.textContent = [
+    'DEBUG (temporar)',
+    `standalone: ${isStandalonePWA() ? 'da' : 'nu'} · nav: ${nav} · SW: ${navigator.serviceWorker?.controller ? 'activ' : 'nu'} · cache: ${cache}`,
+    `cont citit la pornire: ${short(stateOwner)}`,
+    `sesiune Supabase în localStorage: ${sessionRaw ? 'găsită' : 'lipsă'}${sessionId ? ' (' + short(sessionId) + ')' : ''}`,
+    `ture-state pentru cont: ${readLocalState(stateOwner) ? 'există' : 'LIPSĂ'} · chei ture-state: ${keys.map(k => short(k.slice(LOCAL_STATE_PREFIX.length))).join(', ') || 'niciuna'}`,
+    `ture-view: ${(() => { try { return localStorage.getItem(VIEW_KEY) ? 'există' : 'lipsă'; } catch { return '?'; } })()} · ${debugAuthLine}`,
+  ].join('\n');
+  box.style.display = 'block';
+}
+
+(function initDebug() {
+  const flag = new URLSearchParams(location.search).get('debug');
+  try {
+    if (flag === '1') localStorage.setItem(DEBUG_KEY, '1');
+    if (flag === '0') localStorage.removeItem(DEBUG_KEY);
+  } catch { /* */ }
+  let taps = 0, timer = null;
+  document.querySelector('.app-header h1').addEventListener('click', () => {
+    taps++;
+    clearTimeout(timer);
+    timer = setTimeout(() => { taps = 0; }, 1500);
+    if (taps >= 5) {
+      taps = 0;
+      try { isDebugOn() ? localStorage.removeItem(DEBUG_KEY) : localStorage.setItem(DEBUG_KEY, '1'); } catch { /* */ }
+      renderDebug();
+    }
+  });
+})();
+
 // ===== PDF FREEMIUM =====
 // Logică: fără cont → 1 lună gratuit în sesiune (localStorage)
 // Cu email înregistrat → nelimitat
@@ -1899,6 +2020,8 @@ sb.auth.onAuthStateChange(async (event, session) => {
   }
   switchStateOwner(user ? user.id : 'anon');
   updateUserBar(user);
+  debugAuthLine = `auth: ${event} → ${user ? 'logat' : 'fără cont'}`; // TEMPORAR
+  renderDebug();
   if (!user) { loadedUserId = null; return; }
   if (user.id === loadedUserId) return;
   loadedUserId = user.id;
@@ -1998,3 +2121,4 @@ restoreLocalState(stateOwner);
 restoreViewMonth();
 updateTuraTypeUI();
 recalc();
+renderDebug(); // TEMPORAR

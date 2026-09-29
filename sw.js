@@ -1,10 +1,12 @@
-const CACHE = 'ture-v36';
+const CACHE = 'ture-v38';
 const ASSETS = [
   '/',
   '/index.html',
   '/style.css',
   '/app.js',
   '/manifest.json',
+  '/calculator-salariu.html',
+  '/article.css',
 ];
 // Biblioteca Supabase (versiune fixă, aceeași ca în index.html), ca aplicația
 // să pornească și fără rețea. Separat, ca o problemă a CDN-ului să nu blocheze instalarea.
@@ -28,7 +30,15 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
+    caches.match(e.request).then(cached => {
+      // Un răspuns redirecționat din cache nu poate servi o navigare (ex. iframe) → îl refacem
+      if (cached && cached.redirected) {
+        return cached.blob().then(body => new Response(body, {
+          status: cached.status, statusText: cached.statusText, headers: cached.headers,
+        }));
+      }
+      return cached || fetch(e.request);
+    })
   );
 });
 

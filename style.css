@@ -970,3 +970,47 @@ select:focus { outline: none; border-color: var(--accent); }
   .ics-section { display: none !important; }
 }
 .salariu-missing .co-cm-btn { padding: 4px 12px; white-space: nowrap; }
+
+/* ===== Salariu net în panou (aplicația instalată) ===== */
+.salary-panel {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 100vh;
+  height: 100dvh;
+  z-index: 10001;
+  flex-direction: column;
+  background: var(--bg-card);
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  box-sizing: border-box;
+}
+.salary-panel-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.salary-panel-title { font-size: 15px; font-weight: 600; color: var(--text-main); }
+.salary-panel-close { padding: 6px 14px; font-size: 13px; color: var(--text-main); }
+.salary-panel iframe { flex: 1; width: 100%; border: 0; background: #fff; }
+
+/* TEMPORAR: indicator de diagnostic */
+.debug-box {
+  position: fixed;
+  left: 8px; right: 8px;
+  bottom: calc(8px + env(safe-area-inset-bottom));
+  z-index: 10002;
+  background: rgba(0,0,0,0.85);
+  color: #9f9;
+  font: 11px/1.4 ui-monospace, Menlo, monospace;
+  padding: 8px 10px;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  pointer-events: none;
+}
+@media print {
+  .salary-panel, .debug-box { display: none !important; }
+}

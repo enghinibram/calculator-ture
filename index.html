@@ -243,6 +243,18 @@
     </div>
   </div>
 
+  <!-- ===== SALARIU NET ÎN PANOU (doar aplicația instalată) ===== -->
+  <div id="salary-panel" class="salary-panel" style="display:none">
+    <div class="salary-panel-bar">
+      <span class="salary-panel-title">💰 Salariu net</span>
+      <button class="co-cm-btn salary-panel-close" onclick="closeSalaryPanel()">✕ Închide</button>
+    </div>
+    <iframe id="salary-panel-frame" title="Calculator salariu net"></iframe>
+  </div>
+
+  <!-- TEMPORAR: indicator de diagnostic (?debug=1 sau 5 atingeri pe titlu) -->
+  <div id="debug-box" class="debug-box" style="display:none"></div>
+
   <!-- ===== USER DROPDOWN ===== -->
   <div id="user-dropdown" class="user-dropdown" style="display:none">
     <div class="dropdown-info">
