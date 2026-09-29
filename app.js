@@ -792,6 +792,7 @@ function recalc() {
   }
 
   renderSalariu(m, showStats);
+  if (isIcsPanelOpen()) prepareIcs(); // fișierul .ics rămâne la zi cu turele
   updateCoBadge();
   renderCal();
 }
@@ -1088,52 +1089,101 @@ function showIcsStatus(msg, type) {
   el.style.display = 'block';
 }
 
-// Descărcare: link <a download> cu Blob. În aplicația instalată pe iPhone
-// (ecran principal) descărcarea din Blob nu funcționează → Web Share cu fișier.
-async function deliverIcsFile(text, filename) {
-  const blob = new Blob([text], { type: 'text/calendar;charset=utf-8' });
-  let file = null;
-  try { file = new File([blob], filename, { type: 'text/calendar' }); } catch { /* File indisponibil */ }
-  const canShareFile = !!(file && navigator.canShare && navigator.canShare({ files: [file] }));
+// Fișierul se generează dinainte (la deschiderea secțiunii, la schimbarea
+// setărilor și la recalculare), ca la click partajarea/descărcarea să pornească
+// imediat din gestul utilizatorului (cerință iOS).
+let icsPrepared = null;
 
-  if (isIOSDevice() && isStandalonePWA() && canShareFile) {
-    await navigator.share({ files: [file], title: 'Ture' });
-    return 'share';
-  }
-  try {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
-    return 'download';
-  } catch (err) {
-    if (!canShareFile) throw err;
-    await navigator.share({ files: [file], title: 'Ture' });
-    return 'share';
-  }
-}
-
-async function exportIcs() {
-  if (!isFeatureUnlocked('icsExport')) return;
+function prepareIcs() {
   readIcsInputs();
   const monthsCount = parseInt(document.getElementById('ics-range').value, 10) || 1;
   const events = buildIcsEvents(viewYear, viewMonth, monthsCount);
-  const withAlarm = events.filter(e => !e.allDay).length;
-  if (events.length === 0) {
+  const text = buildIcs(events);
+  const filename = `ture-${viewYear}-${pad2(viewMonth + 1)}${monthsCount > 1 ? '-' + monthsCount + 'luni' : ''}.ics`;
+  let file = null;
+  try { file = new File([text], filename, { type: 'text/calendar' }); } catch { /* File indisponibil */ }
+  icsPrepared = { text, file, filename, monthsCount, events, withAlarm: events.filter(e => !e.allDay).length };
+  return icsPrepared;
+}
+
+function isIcsPanelOpen() {
+  const panel = document.getElementById('ics-panel');
+  return !!panel && panel.style.display !== 'none';
+}
+
+// iPadOS se prezintă ca Mac; îl tratăm ca iOS pentru export
+function isIOSLike() {
+  return isIOSDevice() || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+// Android / calculator: descărcare cu <a download> și Blob (funcționează acolo)
+function downloadIcsBlob(p) {
+  const url = URL.createObjectURL(new Blob([p.text], { type: 'text/calendar;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = p.filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+// Safari pe iPhone: formular POST către /api/ics, care răspunde cu
+// Content-Type text/calendar → Safari deschide importul nativ în Calendar.
+function submitIcsForm(p) {
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '/api/ics?f=' + encodeURIComponent(p.filename);
+  form.style.display = 'none';
+  const field = document.createElement('textarea');
+  field.name = 'ics';
+  field.value = p.text;
+  form.appendChild(field);
+  document.body.appendChild(form);
+  form.submit();
+  form.remove();
+}
+
+const ICS_STANDALONE_MSG = 'Deschide aplicația în Safari ca să exporți în calendar.';
+
+function icsExportDone(p, how) {
+  showIcsStatus(`✓ ${p.events.length} evenimente ${how} (${p.withAlarm} cu alarmă).`, 'success');
+  if (typeof window.gtag === 'function') gtag('event', 'export_ics', { luni: p.monthsCount });
+}
+
+// Fără await înainte de share/descărcare: iOS cere apelul direct din click.
+function exportIcs() {
+  if (!isFeatureUnlocked('icsExport')) return;
+  const p = icsPrepared || prepareIcs();
+  if (p.events.length === 0) {
     showIcsStatus('Nu există ture în perioada aleasă. Setează mai întâi tiparul de tură.', 'error');
     return;
   }
-  const filename = `ture-${viewYear}-${pad2(viewMonth + 1)}${monthsCount > 1 ? '-' + monthsCount + 'luni' : ''}.ics`;
+
   try {
-    const how = await deliverIcsFile(buildIcs(events), filename);
-    showIcsStatus(`✓ ${events.length} evenimente ${how === 'share' ? 'trimise' : 'exportate'} (${withAlarm} cu alarmă).`, 'success');
-    if (typeof window.gtag === 'function') gtag('event', 'export_ics', { luni: monthsCount });
+    if (isIOSLike() && isStandalonePWA()) {
+      // Aplicația de pe ecranul principal: descărcările nu sunt suportate → partajare fișier
+      if (p.file && navigator.canShare && navigator.canShare({ files: [p.file] })) {
+        navigator.share({ files: [p.file] })
+          .then(() => icsExportDone(p, 'trimise'))
+          .catch(err => {
+            if (err && err.name === 'AbortError') return; // fereastra de partajare închisă
+            console.error('Eroare partajare .ics:', err);
+            showIcsStatus(ICS_STANDALONE_MSG, 'error');
+          });
+      } else {
+        showIcsStatus(ICS_STANDALONE_MSG, 'error');
+      }
+      return;
+    }
+    if (isIOSLike()) {
+      submitIcsForm(p);
+      icsExportDone(p, 'trimise către Calendar');
+      return;
+    }
+    downloadIcsBlob(p);
+    icsExportDone(p, 'exportate');
   } catch (err) {
-    if (err && err.name === 'AbortError') return; // utilizatorul a închis fereastra de partajare
     console.error('Eroare export .ics:', err);
     showIcsStatus('Nu am putut crea fișierul. Încearcă din nou.', 'error');
   }
@@ -1143,6 +1193,7 @@ function toggleIcsPanel() {
   const panel = document.getElementById('ics-panel');
   const open  = panel.style.display === 'none';
   panel.style.display = open ? 'block' : 'none';
+  if (open) prepareIcs();
   const btn = document.getElementById('btn-ics-toggle');
   btn.textContent = '📅 Exportă în calendar' + (open ? ' ▴' : ' ▾');
   btn.classList.toggle('active-edit-tura', open);
@@ -1342,8 +1393,9 @@ document.getElementById('day-double-check').addEventListener('change', onDayDoub
 document.getElementById('day-double-ore').addEventListener('change', onDayDoubleOreChange);
 document.getElementById('day-double-tip').addEventListener('change', onDayDoubleTipChange);
 document.querySelectorAll('.ics-setting').forEach(el => {
-  el.addEventListener('change', () => { readIcsInputs(); saveSettings(); });
+  el.addEventListener('change', () => { readIcsInputs(); saveSettings(); if (isIcsPanelOpen()) prepareIcs(); });
 });
+document.getElementById('ics-range').addEventListener('change', () => { if (isIcsPanelOpen()) prepareIcs(); });
 document.getElementById('day-modal-action').addEventListener('click', onDayPanelAction);
 document.getElementById('day-modal').addEventListener('click', (e) => {
   if (e.target.id === 'day-modal') closeDayPanel();
