@@ -6,7 +6,7 @@
 (function () {
   const GAME_KEY = 'ture-game';
   const INVITE_TEXTS = ['Ai chef de-un joc?', 'Ai 30 de secunde să arzi gazul degeaba? Hai la un joc'];
-  const MIN_OPENS         = 3;                    // cel puțin a treia deschidere
+  const MIN_OPENS         = 2;                    // cel puțin a doua deschidere
   const IDLE_MS           = 6000;                 // ~6 s fără atingere
   const INVITE_TIMEOUT_MS = 10000;                // bula dispare singură
   const SNOOZE_MS         = 3 * 24 * 3600 * 1000; // „Nu” = pauză de 3 zile
@@ -48,8 +48,19 @@
     return true;
   }
 
+  // Limitele care nu se schimbă în timpul sesiunii (oprire, o dată pe zi, pauză)
   function canInviteToday(g) {
-    return !g.invitesOff && g.opens >= MIN_OPENS && g.lastInviteDate !== todayStr() && Date.now() >= g.snoozeUntil;
+    return !g.invitesOff && g.lastInviteDate !== todayStr() && Date.now() >= g.snoozeUntil;
+  }
+
+  function patternSet() {
+    if (typeof isCustomMode === 'function' && isCustomMode()) return typeof customDays !== 'undefined' && customDays.size > 0;
+    return typeof startDate !== 'undefined' && !!startDate;
+  }
+
+  // Tipar setat ȘI cel puțin a doua deschidere (deci niciodată în prima sesiune)
+  function userReady(g) {
+    return patternSet() && g.opens >= MIN_OPENS;
   }
 
   // ---------- Invitația ----------
@@ -67,6 +78,7 @@
     checkTimer = setInterval(() => {
       const g = loadGame();
       if (!canInviteToday(g)) { clearInterval(checkTimer); return; }
+      if (!userReady(g)) return; // tiparul poate fi setat mai târziu în sesiune
       if (document.visibilityState !== 'visible') return;
       if (Date.now() - lastInteraction < IDLE_MS) return;
       if (!nothingOpen()) return;
