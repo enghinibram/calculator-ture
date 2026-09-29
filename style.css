@@ -902,3 +902,40 @@ select:focus { outline: none; border-color: var(--accent); }
 }
 .article-links a { color: var(--accent); text-decoration: none; font-size: 13px; }
 .article-links a:hover { text-decoration: underline; }
+/* ===== Aplică tură pe mai multe zile ===== */
+.apply-tura-btn { margin-bottom: 12px; }
+.co-cm-btn.active-edit-tura {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+/* ===== Dublă ===== */
+.day.dubla  { box-shadow: inset 0 0 0 2px var(--accent); }
+.hol-dubla  { color: #fff; background: var(--accent); border-radius: 3px; padding: 0 2px; }
+.day-double-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-main);
+  margin: 4px 0 0;
+  cursor: pointer;
+}
+.day-double-row input { width: 18px; height: 18px; accent-color: var(--accent); }
+#day-double-ore-row { margin-bottom: 0; }
+@media print {
+  .apply-tura-btn, #day-modal { display: none !important; }
+}
+
+/* ===== Salariu pe ture ===== */
+.salariu-section { margin-top: 1.25rem; }
+.salariu-settings { display: flex; flex-wrap: wrap; gap: 0 16px; }
+.salariu-input { width: 84px; }
+.salariu-stats { grid-template-columns: repeat(2, 1fr); margin-top: 0.5rem; }
+.salariu-stats .salariu-total { grid-column: 1 / -1; }
+.salariu-total .stat-val { color: var(--accent); }
+@media print {
+  .salariu-settings { display: none !important; }
+}

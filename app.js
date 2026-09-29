@@ -16,6 +16,14 @@ let currentUser = null;
 let coDays = new Set();
 let cmDays = new Set();
 let editMode = null;
+
+// Duble: { 'YYYY-M-D': oreSuplimentare } — prezența cheii = zi cu dublă.
+// Dubla NU e a doua tură: ziua se numără o dată, plătită cu payPerShift × doubleMultiplier.
+let doubleDays = {};
+const DOUBLE_ORE_DEFAULT = 12;
+let payPerShift = 200;      // lei / tură normală
+let doubleMultiplier = 2;   // 2 = 200%
+const DUBLE_LOCAL_KEY = 'ture-duble'; // salvare locală pentru utilizatorii fără cont
 let calculFacutTrimis = false; // GA4: trimitem calcul_facut o singură dată per sesiune
 let pushEligible = false; // is_premium && push_product_active — gatează UI-ul de notificări
 
@@ -297,8 +305,59 @@ function deserializeSet(str) {
   catch { return new Set(); }
 }
 
+// ===== Serializare duble =====
+function deserializeObj(str) {
+  try {
+    const o = JSON.parse(str);
+    return (o && typeof o === 'object' && !Array.isArray(o)) ? o : {};
+  } catch { return {}; }
+}
+
+function applyDubleSettings(pay, mult) {
+  const p = parseFloat(pay);
+  const m = parseFloat(mult);
+  if (p >= 0) payPerShift = p;
+  if (m > 0)  doubleMultiplier = m;
+  const payInp  = document.getElementById('pay-per-shift');
+  const multInp = document.getElementById('double-multiplier');
+  if (payInp)  payInp.value  = payPerShift;
+  if (multInp) multInp.value = doubleMultiplier;
+}
+
+function saveDubleLocal() {
+  if (currentUser) return; // cu cont, sursa e Supabase
+  try {
+    localStorage.setItem(DUBLE_LOCAL_KEY, JSON.stringify({
+      double_days: doubleDays, pay_per_shift: payPerShift, double_multiplier: doubleMultiplier,
+    }));
+  } catch { /* storage indisponibil */ }
+}
+
+function loadDubleLocal() {
+  try {
+    const raw = localStorage.getItem(DUBLE_LOCAL_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (data.double_days && typeof data.double_days === 'object') doubleDays = data.double_days;
+    applyDubleSettings(data.pay_per_shift, data.double_multiplier);
+  } catch { /* date corupte — ignorăm */ }
+}
+
+// Upsert separat: dacă migrarea cu coloanele noi nu e rulată încă,
+// eroarea nu blochează salvarea turelor/CO/CM din saveSettings().
+async function saveDubleRemote() {
+  const { error } = await sb.from('user_settings').upsert({
+    user_id:           currentUser.id,
+    double_days:       JSON.stringify(doubleDays),
+    pay_per_shift:     payPerShift,
+    double_multiplier: doubleMultiplier,
+  }, { onConflict: 'user_id' });
+  if (error) console.error('Eroare salvare duble:', error);
+}
+
 // ===== Supabase: salvare =====
 async function saveSettings() {
+  saveDubleLocal();
   if (!currentUser) return;
   const turaType = document.getElementById('tura-type').value;
   const startStr = startDate
@@ -316,6 +375,7 @@ async function saveSettings() {
     custom_ore:       getCustomOre(),
     shift_start_time: shiftStartTime,
   }, { onConflict: 'user_id' });
+  await saveDubleRemote();
 }
 
 // ===== Supabase: încărcare =====
@@ -342,6 +402,8 @@ async function loadSettings() {
     if (data.co_days)     coDays     = deserializeSet(data.co_days);
     if (data.cm_days)     cmDays     = deserializeSet(data.cm_days);
     if (data.custom_days) customDays = deserializeSet(data.custom_days);
+    if (data.double_days) doubleDays = deserializeObj(data.double_days);
+    applyDubleSettings(data.pay_per_shift, data.double_multiplier);
     if (data.custom_ore) {
       const inp = document.getElementById('custom-ore-input');
       if (inp) inp.value = data.custom_ore;
@@ -363,10 +425,18 @@ function setEditMode(mode) {
 function updateEditModeUI() {
   const btnCo = document.getElementById('btn-edit-co');
   const btnCm = document.getElementById('btn-edit-cm');
+  const btnTura = document.getElementById('btn-apply-tura');
   const hint  = document.getElementById('edit-hint');
   btnCo.classList.toggle('active-edit-co', editMode === 'co');
   btnCm.classList.toggle('active-edit-cm', editMode === 'cm');
-  if (editMode === 'co') {
+  btnTura.classList.toggle('active-edit-tura', editMode === 'tura');
+  btnTura.textContent = editMode === 'tura' ? '✓ Gata' : '📅 Aplică tură pe mai multe zile';
+  if (editMode === 'tura') {
+    hint.textContent = isCustomMode()
+      ? '✏️ Apasă pe zile pentru a le marca/demarca ca zile lucrate. Apasă „Gata” când termini.'
+      : '✏️ Apasă pe o zi de tură de ZI pentru a seta începutul tiparului. Apasă „Gata” când termini.';
+    hint.style.display = 'block';
+  } else if (editMode === 'co') {
     hint.textContent = '✏️ Apasă pe orice zi pentru a marca/demarca CO (8h/zi)';
     hint.style.display = 'block';
   } else if (editMode === 'cm') {
@@ -393,15 +463,122 @@ function handleDayClick(y, m, d) {
     recalc(); saveSettings(); return;
   }
 
-  // Custom mode: click = toggle zi lucrătoare
+  // Mod „Aplică tură pe mai multe zile”
+  if (editMode === 'tura') {
+    applyTura(y, m, d);
+    return;
+  }
+
+  // Click normal → panoul zilei
+  openDayPanel(y, m, d);
+}
+
+// Aplicare rapidă: custom = toggle zi lucrătoare, tipar = setare start tură
+function applyTura(y, m, d) {
+  const key = dayKey(y, m + 1, d);
   if (isCustomMode()) {
     if (coDays.has(key) || cmDays.has(key)) return; // nu suprascrie CO/CM
     customDays.has(key) ? customDays.delete(key) : customDays.add(key);
     recalc(); saveSettings(); return;
   }
-
-  // Click normal → setare start tură
   setStart(y, m, d);
+}
+
+// ===== Panoul zilei =====
+let panelDay = null; // { y, m, d } — m e 0-based
+
+function openDayPanel(y, m, d) {
+  panelDay = { y, m, d };
+  renderDayPanel();
+  document.getElementById('day-modal').style.display = 'flex';
+}
+
+function closeDayPanel() {
+  panelDay = null;
+  document.getElementById('day-modal').style.display = 'none';
+}
+
+function describeShift(dateObj) {
+  const key = dayKey(dateObj.getFullYear(), dateObj.getMonth() + 1, dateObj.getDate());
+  if (coDays.has(key)) return 'Concediu de odihnă (CO)';
+  if (cmDays.has(key)) return 'Concediu medical (CM)';
+  const sh = getShift(dateObj);
+  if (!sh) return 'Tiparul de tură nu e setat încă';
+  if (sh.type === 'liber') return 'Zi liberă';
+  const ore = getOrePerZi();
+  if (sh.type === 'zi') return `Tură de zi · ${ore}h`;
+  return (sh.label === 'A' ? 'Tură de după-amiază' : 'Tură de noapte') + ` · ${ore}h`;
+}
+
+function renderDayPanel() {
+  if (!panelDay) return;
+  const { y, m, d } = panelDay;
+  const dateObj = new Date(y, m, d);
+  const key     = dayKey(y, m + 1, d);
+  const worked  = isWorkedDay(dateObj);
+  const isDubla = key in doubleDays;
+
+  const title = dateObj.toLocaleDateString('ro-RO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  document.getElementById('day-modal-title').textContent = title.charAt(0).toUpperCase() + title.slice(1);
+  document.getElementById('day-modal-shift').textContent = describeShift(dateObj);
+
+  // Acțiune pe o singură zi (echivalentul aplicării rapide)
+  const actionBtn = document.getElementById('day-modal-action');
+  const isLeave = coDays.has(key) || cmDays.has(key);
+  const isStart = startDate && dateObj.toDateString() === startDate.toDateString();
+  if (isCustomMode()) {
+    actionBtn.style.display = isLeave ? 'none' : 'block';
+    actionBtn.textContent = customDays.has(key) ? 'Marchează ca zi liberă' : 'Marchează ca zi lucrată';
+  } else {
+    actionBtn.style.display = isStart ? 'none' : 'block';
+    actionBtn.textContent = 'Setează ca început de tipar (tură de ZI)';
+  }
+
+  const check = document.getElementById('day-double-check');
+  check.checked  = isDubla;
+  check.disabled = !worked && !isDubla; // o dublă veche poate fi mereu debifată
+
+  const oreInp = document.getElementById('day-double-ore');
+  oreInp.value = isDubla ? doubleDays[key] : DOUBLE_ORE_DEFAULT;
+  document.getElementById('day-double-ore-row').style.display = isDubla ? 'flex' : 'none';
+
+  const note = document.getElementById('day-double-note');
+  if (!worked) {
+    note.textContent = isDubla
+      ? 'Ziua nu mai e lucrată, deci dubla nu se ia în calcul.'
+      : 'Dubla se poate marca doar pe o zi lucrată.';
+  } else if (isDubla) {
+    note.textContent = `Plata zilei: ${payPerShift} × ${doubleMultiplier} = ${payPerShift * doubleMultiplier} lei (o singură zi lucrată).`;
+  } else {
+    note.textContent = `Plata zilei: ${payPerShift} lei.`;
+  }
+}
+
+function onDayDoubleToggle() {
+  if (!panelDay) return;
+  const key = dayKey(panelDay.y, panelDay.m + 1, panelDay.d);
+  if (document.getElementById('day-double-check').checked) {
+    const ore = parseFloat(document.getElementById('day-double-ore').value);
+    doubleDays[key] = ore > 0 ? ore : DOUBLE_ORE_DEFAULT;
+  } else {
+    delete doubleDays[key];
+  }
+  recalc(); saveSettings(); renderDayPanel();
+}
+
+function onDayDoubleOreChange() {
+  if (!panelDay) return;
+  const key = dayKey(panelDay.y, panelDay.m + 1, panelDay.d);
+  if (!(key in doubleDays)) return;
+  const ore = parseFloat(document.getElementById('day-double-ore').value);
+  doubleDays[key] = ore > 0 ? ore : DOUBLE_ORE_DEFAULT;
+  recalc(); saveSettings(); renderDayPanel();
+}
+
+function onDayPanelAction() {
+  if (!panelDay) return;
+  applyTura(panelDay.y, panelDay.m, panelDay.d);
+  renderDayPanel();
 }
 
 // ===== Setare zi de start =====
@@ -422,40 +599,61 @@ function updateTuraTypeUI() {
   const startInfo   = document.getElementById('start-info');
   if (val === 'custom') {
     customPanel.style.display = 'block';
-    startInfo.textContent = '👆 Bifează zilele în care lucrezi apăsând pe ele în calendar.';
+    startInfo.textContent = '👆 Bifează zilele în care lucrezi: apasă „Aplică tură pe mai multe zile”, apoi pe zile. Apasă pe o zi pentru detalii și dublă.';
   } else {
     customPanel.style.display = 'none';
     if (!startDate) {
-      startInfo.textContent = 'Apasă pe o zi de tură de ZI pentru a seta tiparul.';
+      startInfo.textContent = 'Apasă „Aplică tură pe mai multe zile”, apoi pe o zi de tură de ZI pentru a seta tiparul.';
     }
   }
+}
+
+// ===== Zi lucrată (sursă unică pentru ore și salariu) =====
+function isWorkedDay(dateObj) {
+  const key = dayKey(dateObj.getFullYear(), dateObj.getMonth() + 1, dateObj.getDate());
+  if (coDays.has(key) || cmDays.has(key)) return false;
+  const sh = getShift(dateObj);
+  return !!(sh && (sh.type === 'zi' || sh.type === 'noapte'));
+}
+
+// Dublele contează doar pe zile lucrate; o dublă rămasă pe o zi devenită
+// liberă/CO/CM e păstrată în date dar ignorată la calcul.
+function computeMonth(year, month) {
+  const days  = new Date(year, month + 1, 0).getDate();
+  const oreZi = getOrePerZi();
+  const r = { oreLucrate: 0, oreCo: 0, oreCm: 0, zileLucrate: 0, tureNormale: 0, duble: 0, oreSuplDuble: 0 };
+
+  for (let d = 1; d <= days; d++) {
+    const dateObj = new Date(year, month, d);
+    const key = dayKey(year, month + 1, d);
+
+    if (coDays.has(key)) {
+      r.oreCo += 8;
+    } else if (cmDays.has(key)) {
+      r.oreCm += 8;
+    } else if (isWorkedDay(dateObj)) {
+      r.oreLucrate += oreZi;
+      r.zileLucrate++;
+      if (key in doubleDays) {
+        r.duble++;
+        r.oreSuplDuble += Number(doubleDays[key]) || 0;
+      } else {
+        r.tureNormale++;
+      }
+    }
+  }
+
+  r.salariu = r.tureNormale * payPerShift + r.duble * payPerShift * doubleMultiplier;
+  return r;
 }
 
 // ===== Recalculare =====
 function recalc() {
   const year  = viewYear;
   const month = viewMonth;
-  const days  = new Date(year, month + 1, 0).getDate();
-  const oreZi = getOrePerZi();
-  let oreLucrate = 0;
-  let oreCoLuna  = 0;
-  let oreCmLuna  = 0;
+  const m = computeMonth(year, month);
 
-  for (let d = 1; d <= days; d++) {
-    const dateObj = new Date(year, month, d);
-    const sh  = getShift(dateObj);
-    const key = dayKey(year, month + 1, d);
-
-    if (coDays.has(key)) {
-      oreCoLuna += 8;
-    } else if (cmDays.has(key)) {
-      oreCmLuna += 8;
-    } else if (sh && (sh.type === 'zi' || sh.type === 'noapte')) {
-      oreLucrate += oreZi;
-    }
-  }
-
-  const totalPontat = oreLucrate + oreCoLuna + oreCmLuna;
+  const totalPontat = m.oreLucrate + m.oreCo + m.oreCm;
   const norma = getNorma(year, month);
   const extra = totalPontat - norma;
 
@@ -474,8 +672,19 @@ function recalc() {
     }
   }
 
+  renderSalariu(m, showStats);
   updateCoBadge();
   renderCal();
+}
+
+// ===== Salariu pe ture (citește același rezultat ca statisticile de ore) =====
+function renderSalariu(m, show) {
+  const set = (id, v) => { document.getElementById(id).textContent = show ? v : '—'; };
+  set('sal-ture-normale', m.tureNormale);
+  set('sal-duble',        m.duble);
+  set('sal-ore-supl',     m.oreSuplDuble);
+  set('sal-zile-lucrate', m.zileLucrate);
+  set('sal-total',        Math.round(m.salariu * 100) / 100);
 }
 
 function updateCoBadge() {
@@ -513,6 +722,7 @@ function renderCal() {
     const key     = dayKey(year, month + 1, d);
     const isCo    = coDays.has(key);
     const isCm    = cmDays.has(key);
+    const isDubla = (key in doubleDays) && isWorkedDay(dateObj);
 
     let cls = 'day';
     if (isCo)       cls += ' co';
@@ -523,6 +733,7 @@ function renderCal() {
     if (isToday) cls += ' today';
     if (isStart) cls += ' start-sel';
     if (legal)   cls += ' legal-holiday';
+    if (isDubla) cls += ' dubla';
 
     // În mod custom, zilele lucrătoare au cursor diferit
     if (isCustomMode() && !isCo && !isCm) cls += ' custom-clickable';
@@ -530,10 +741,11 @@ function renderCal() {
     const badge    = (!isCo && !isCm && sh && sh.label) ? `<span class="shift-badge">${sh.label}</span>` : '';
     const coBadge  = isCo ? `<span class="hol-name hol-co">CO</span>` : '';
     const cmBadge  = isCm ? `<span class="hol-name hol-cm">CM</span>` : '';
+    const dblBadge = isDubla ? `<span class="hol-name hol-dubla">DUBLĂ</span>` : '';
     const legalBdg = legal ? `<span class="hol-name hol-legal" title="${legal}">ZL</span>` : '';
     const holHtml  = hol   ? `<span class="hol-name hol-${hol.type}">${hol.name}</span>` : '';
 
-    html += `<div class="${cls}" data-y="${year}" data-m="${month}" data-d="${d}">${d}${badge}${coBadge}${cmBadge}${legalBdg}${holHtml}</div>`;
+    html += `<div class="${cls}" data-y="${year}" data-m="${month}" data-d="${d}">${d}${badge}${dblBadge}${coBadge}${cmBadge}${legalBdg}${holHtml}</div>`;
   }
 
   document.getElementById('cal').innerHTML = html;
@@ -735,6 +947,7 @@ async function submitEmailCapture() {
 // ===== Event Listeners =====
 document.getElementById('tura-type').addEventListener('change', () => {
   updateTuraTypeUI();
+  updateEditModeUI();
   recalc();
   saveSettings();
 });
@@ -746,6 +959,20 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
 });
 document.getElementById('btn-edit-co').addEventListener('click', () => setEditMode('co'));
 document.getElementById('btn-edit-cm').addEventListener('click', () => setEditMode('cm'));
+document.getElementById('btn-apply-tura').addEventListener('click', () => setEditMode('tura'));
+['pay-per-shift', 'double-multiplier'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => {
+    applyDubleSettings(document.getElementById('pay-per-shift').value,
+                       document.getElementById('double-multiplier').value);
+    recalc(); saveSettings();
+  });
+});
+document.getElementById('day-double-check').addEventListener('change', onDayDoubleToggle);
+document.getElementById('day-double-ore').addEventListener('change', onDayDoubleOreChange);
+document.getElementById('day-modal-action').addEventListener('click', onDayPanelAction);
+document.getElementById('day-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'day-modal') closeDayPanel();
+});
 document.getElementById('btn-clear-co').addEventListener('click', () => {
   if (coDays.size === 0 && cmDays.size === 0) return;
   if (!confirm('Ștergi toate zilele de CO și CM marcate?')) return;
@@ -1215,5 +1442,6 @@ async function doSetNewPassword() {
   history.replaceState(null, '', window.location.pathname);
 }
 
+loadDubleLocal();
 updateTuraTypeUI();
 recalc();

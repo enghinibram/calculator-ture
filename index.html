@@ -217,6 +217,25 @@
     </div>
   </div>
 
+  <!-- ===== PANOUL ZILEI ===== -->
+  <div id="day-modal" class="auth-overlay" style="display:none">
+    <div class="auth-box">
+      <h2 class="auth-title" id="day-modal-title"></h2>
+      <p class="auth-sub" id="day-modal-shift"></p>
+      <button class="auth-btn secondary" id="day-modal-action"></button>
+      <label class="day-double-row">
+        <input type="checkbox" id="day-double-check" />
+        Dublă (ore suplimentare peste tura normală)
+      </label>
+      <div id="day-double-ore-row" class="custom-ore-row" style="display:none">
+        <input type="number" id="day-double-ore" class="custom-ore-input" value="12" min="1" max="24" step="1" />
+        <span class="custom-ore-label">ore suplimentare</span>
+      </div>
+      <p class="custom-hint" id="day-double-note"></p>
+      <button class="auth-btn" onclick="closeDayPanel()">Gata</button>
+    </div>
+  </div>
+
   <!-- ===== USER DROPDOWN ===== -->
   <div id="user-dropdown" class="user-dropdown" style="display:none">
     <div class="dropdown-info">
@@ -271,7 +290,7 @@
           value="12" min="1" max="24" step="1" />
         <span class="custom-ore-label">ore / zi lucrătoare</span>
       </div>
-      <p class="custom-hint">Apasă pe zilele din calendar pentru a marca zilele în care lucrezi. Apasă din nou pentru a anula.</p>
+      <p class="custom-hint">Apasă „Aplică tură pe mai multe zile”, apoi pe zilele din calendar pentru a marca zilele în care lucrezi. Apasă din nou pentru a anula.</p>
     </div>
 
     <!-- Sărbători -->
@@ -303,7 +322,8 @@
 
     <!-- Calendar -->
     <div class="section">
-      <p class="info" id="start-info">Apasă pe o zi de tură de ZI pentru a seta tiparul.</p>
+      <p class="info" id="start-info">Apasă „Aplică tură pe mai multe zile”, apoi pe o zi de tură de ZI pentru a seta tiparul.</p>
+      <button class="co-cm-btn apply-tura-btn" id="btn-apply-tura">📅 Aplică tură pe mai multe zile</button>
       <p id="nav-notice" style="display:none"></p>
       <div class="cal-header">
         <button id="prev-month">&#8592;</button>
@@ -330,6 +350,28 @@
       <div class="stat"><div class="stat-val" id="ore-lucrate">—</div><div class="stat-lbl">ore pontate luna asta</div></div>
       <div class="stat"><div class="stat-val" id="norma">—</div><div class="stat-lbl">norma lunii (ore)</div></div>
       <div class="stat"><div class="stat-val" id="ore-extra">—</div><div class="stat-lbl">ore extra / minus</div></div>
+    </div>
+
+    <!-- Salariu pe ture -->
+    <div class="section salariu-section">
+      <label>Salariu pe ture (luna afișată)</label>
+      <div class="salariu-settings">
+        <div class="custom-ore-row">
+          <input type="number" id="pay-per-shift" class="custom-ore-input salariu-input" value="200" min="0" step="10" />
+          <span class="custom-ore-label">lei / tură normală</span>
+        </div>
+        <div class="custom-ore-row">
+          <input type="number" id="double-multiplier" class="custom-ore-input salariu-input" value="2" min="0.1" step="0.1" />
+          <span class="custom-ore-label">multiplicator dublă (2 = 200%)</span>
+        </div>
+      </div>
+      <div class="stats salariu-stats">
+        <div class="stat"><div class="stat-val" id="sal-ture-normale">—</div><div class="stat-lbl">ture normale</div></div>
+        <div class="stat"><div class="stat-val" id="sal-duble">—</div><div class="stat-lbl">duble</div></div>
+        <div class="stat"><div class="stat-val" id="sal-ore-supl">—</div><div class="stat-lbl">ore suplimentare (duble)</div></div>
+        <div class="stat"><div class="stat-val" id="sal-zile-lucrate">—</div><div class="stat-lbl">zile lucrate</div></div>
+        <div class="stat salariu-total"><div class="stat-val" id="sal-total">—</div><div class="stat-lbl">total salariu (lei)</div></div>
+      </div>
     </div>
 
     <!-- ===== PREMIUM BANNER ===== -->
