@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ro" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Verificare notificări | Calculator Ture</title>
+  <link rel="stylesheet" href="article.css" />
+  <style>
+    .status-list { list-style: none; padding-left: 0; }
+    .status-list li {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+      font-size: 14px;
+    }
+    .status-list .val { font-weight: 600; text-align: right; word-break: break-word; }
+    .ok { color: #157a5b; }
+    .warn { color: #a15c00; }
+    .bad { color: #b3261e; }
+    .msg-box {
+      padding: 1rem 1.25rem;
+      border-radius: 8px;
+      margin: 1rem 0;
+      font-size: 15px;
+      border-left: 4px solid #1D9E75;
+      background: #f0faf6;
+    }
+    .msg-box.warn { background: #FFF9C4; border-color: #F5C623; color: #7A5800; }
+    .msg-box.bad { background: #fdecea; border-color: #b3261e; color: #7a1a14; }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin: 0.5rem 0;
+      background: #1D9E75;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn.secondary { background: #fff; color: #1D9E75; border: 1px solid #1D9E75; }
+    .btn:disabled { opacity: 0.5; cursor: default; }
+    textarea {
+      width: 100%;
+      min-height: 110px;
+      font-family: ui-monospace, Menlo, monospace;
+      font-size: 12px;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    #action-result { font-size: 14px; min-height: 1.4em; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="breadcrumb"><a href="/">← Calculator Ture</a></nav>
+    <h1>Verificare notificări</h1>
+    <p>Pagina arată dacă telefonul tău poate primi notificări de la Calculator Ture. Nu trimite nimic nicăieri.</p>
+
+    <div id="mode-box" class="msg-box"></div>
+
+    <h2>Stare</h2>
+    <ul class="status-list" id="status-list"></ul>
+
+    <h2>Acțiuni</h2>
+    <button class="btn" id="btn-permission" onclick="askPermission()">Cere permisiunea pentru notificări</button>
+    <button class="btn secondary" id="btn-local" onclick="localTest()">Afișează o notificare de test (locală)</button>
+    <p id="action-result"></p>
+
+    <h2>Abonament push</h2>
+    <p>Pentru testul din terminal (<code>scripts/send-test-push.mjs</code>), copiază textul de mai jos. Conține adresa de livrare a acestui dispozitiv, nu îl publica.</p>
+    <textarea id="sub-json" readonly placeholder="Niciun abonament pe acest dispozitiv."></textarea>
+    <button class="btn secondary" id="btn-copy" onclick="copySub()" disabled>Copiază abonamentul</button>
+  </div>
+
+  <script>
+    var state = {};
+
+    function isIOS() {
+      return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    }
+
+    function isStandalone() {
+      return window.navigator.standalone === true ||
+        window.matchMedia('(display-mode: standalone)').matches;
+    }
+
+    function bufToBase64Url(buf) {
+      if (!buf) return null;
+      var bytes = new Uint8Array(buf), s = '';
+      for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+      return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    function row(label, value, cls) {
+      var li = document.createElement('li');
+      var l = document.createElement('span');
+      l.textContent = label;
+      var v = document.createElement('span');
+      v.className = 'val ' + (cls || '');
+      v.textContent = value;
+      li.appendChild(l);
+      li.appendChild(v);
+      document.getElementById('status-list').appendChild(li);
+    }
+
+    function setResult(text, cls) {
+      var el = document.getElementById('action-result');
+      el.textContent = text;
+      el.className = cls || '';
+    }
+
+    function renderMode() {
+      var box = document.getElementById('mode-box');
+      var ios = isIOS(), standalone = isStandalone();
+      if (standalone) {
+        box.className = 'msg-box';
+        box.textContent = '✓ Aplicația rulează instalată (de pe ecranul principal). Aici notificările pot funcționa.';
+      } else if (ios) {
+        box.className = 'msg-box bad';
+        box.textContent = 'Ești într-un tab de Safari, nu în aplicația instalată. Pe iPhone, notificările funcționează doar din aplicația adăugată pe ecranul principal: apasă Partajează → „Adaugă pe ecranul principal”, deschide Calculator Ture de pe ecranul principal și revino pe această pagină din aplicație.';
+      } else {
+        box.className = 'msg-box warn';
+        box.textContent = 'Ești într-un tab normal al browserului. Pe Android și desktop notificările funcționează și așa, dar e bine să verifici și din aplicația instalată, dacă o folosești.';
+      }
+    }
+
+    async function refresh() {
+      document.getElementById('status-list').innerHTML = '';
+      renderMode();
+
+      var ios = isIOS(), standalone = isStandalone();
+      row('Dispozitiv', ios ? 'iPhone / iPad' : 'Altul');
+      row('Mod de rulare', standalone ? 'Aplicație instalată (standalone)' : 'Tab de browser', standalone ? 'ok' : (ios ? 'bad' : 'warn'));
+
+      var hasSW = 'serviceWorker' in navigator;
+      var hasPush = 'PushManager' in window;
+      var hasNotif = 'Notification' in window;
+      row('Service worker suportat', hasSW ? 'Da' : 'Nu', hasSW ? 'ok' : 'bad');
+      row('Push suportat', hasPush ? 'Da' : 'Nu', hasPush ? 'ok' : 'bad');
+
+      var perm = hasNotif ? Notification.permission : 'indisponibil';
+      var permLabel = { granted: 'Acordată', denied: 'Refuzată', 'default': 'Necerută încă' }[perm] || perm;
+      row('Permisiune notificări', permLabel, perm === 'granted' ? 'ok' : (perm === 'denied' ? 'bad' : 'warn'));
+      document.getElementById('btn-permission').disabled = !hasNotif || perm !== 'default';
+
+      state.reg = null;
+      if (hasSW) {
+        state.reg = await navigator.serviceWorker.getRegistration('/');
+        if (state.reg) {
+          var sw = state.reg.active || state.reg.waiting || state.reg.installing;
+          row('Service worker', sw ? (state.reg.active ? 'Activ' : 'Se instalează') : 'Fără worker', state.reg.active ? 'ok' : 'warn');
+          row('Scope', state.reg.scope);
+          if (sw) row('Fișier', new URL(sw.scriptURL).pathname);
+        } else {
+          row('Service worker', 'Neînregistrat — deschide întâi pagina principală', 'bad');
+        }
+      }
+      document.getElementById('btn-local').disabled = !(state.reg && state.reg.active) || perm !== 'granted';
+
+      var sub = null;
+      if (state.reg && hasPush) {
+        try { sub = await state.reg.pushManager.getSubscription(); } catch (e) { sub = null; }
+      }
+      state.sub = sub;
+      if (sub) {
+        var host = new URL(sub.endpoint).host;
+        row('Abonament push', 'Există', 'ok');
+        row('Serviciu push', host);
+        if (sub.expirationTime) row('Expiră', new Date(sub.expirationTime).toLocaleString('ro-RO'));
+        document.getElementById('sub-json').value = JSON.stringify(sub.toJSON(), null, 2);
+        document.getElementById('btn-copy').disabled = false;
+        await checkServerKey(sub);
+      } else {
+        row('Abonament push', 'Nu există — activează notificările din aplicație', perm === 'granted' ? 'warn' : '');
+        document.getElementById('sub-json').value = '';
+        document.getElementById('btn-copy').disabled = true;
+      }
+    }
+
+    // Compară cheia cu care a fost creat abonamentul cu cheia VAPID actuală a serverului.
+    async function checkServerKey(sub) {
+      var subKey = sub.options && bufToBase64Url(sub.options.applicationServerKey);
+      if (!subKey) { row('Cheie VAPID', 'Browserul nu o expune', 'warn'); return; }
+      try {
+        var res = await fetch('/api/vapid-public-key', { cache: 'no-store' });
+        var data = await res.json();
+        var match = data.publicKey === subKey;
+        row('Cheie VAPID abonament = server', match ? 'Da' : 'NU — reactivează notificările', match ? 'ok' : 'bad');
+      } catch (e) {
+        row('Cheie VAPID server', 'Nu am putut-o citi', 'warn');
+      }
+    }
+
+    // Pornește doar din click (gest al utilizatorului), cerință pe iOS.
+    async function askPermission() {
+      if (isIOS() && !isStandalone()) {
+        setResult('Pe iPhone, deschide întâi aplicația de pe ecranul principal.', 'bad');
+        return;
+      }
+      try {
+        var p = await Notification.requestPermission();
+        setResult(p === 'granted' ? 'Permisiune acordată.' : 'Permisiunea nu a fost acordată (' + p + ').', p === 'granted' ? 'ok' : 'bad');
+      } catch (e) {
+        setResult('Eroare la cererea permisiunii: ' + e.message, 'bad');
+      }
+      refresh();
+    }
+
+    async function localTest() {
+      try {
+        await state.reg.showNotification('Calculator Ture', {
+          body: 'Notificare de test locală. Dacă o vezi, afișarea funcționează.',
+          icon: '/icon-192.png',
+          badge: '/icon-192.png',
+          data: '/push-debug.html',
+        });
+        setResult('Notificarea a fost trimisă către sistem.', 'ok');
+      } catch (e) {
+        setResult('Nu am putut afișa notificarea: ' + e.message, 'bad');
+      }
+    }
+
+    async function copySub() {
+      var text = document.getElementById('sub-json').value;
+      try {
+        await navigator.clipboard.writeText(text);
+        setResult('Abonament copiat.', 'ok');
+      } catch (e) {
+        var ta = document.getElementById('sub-json');
+        ta.focus();
+        ta.select();
+        setResult('Selectează și copiază manual textul.', 'warn');
+      }
+    }
+
+    refresh();
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'visible') refresh();
+    });
+  </script>
+</body>
+</html>

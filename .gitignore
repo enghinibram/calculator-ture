@@ -4,3 +4,5 @@ cron_secret.txt
 supabase/.temp/
 .DS_Store
 .claude/
+node_modules/
+push-subscription*.json

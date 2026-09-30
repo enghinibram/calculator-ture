@@ -1,4 +1,4 @@
-const CACHE = 'ture-v50';
+const CACHE = 'ture-v51';
 const ASSETS = [
   '/',
   '/index.html',
@@ -43,11 +43,21 @@ self.addEventListener('fetch', e => {
   );
 });
 
+// Orice push trebuie să afișeze o notificare vizibilă: pe iOS, un push
+// „tăcut” (inclusiv unul la care handlerul crapă) poate duce la revocarea
+// abonamentului. De aceea payload-ul invalid cade pe un text implicit.
 self.addEventListener('push', e => {
-  const data = e.data ? e.data.json() : {};
-  const title = data.title || 'Calculatorture';
+  let data = {};
+  if (e.data) {
+    try {
+      data = e.data.json() || {};
+    } catch (err) {
+      data = { body: e.data.text() };
+    }
+  }
+  const title = data.title || 'Calculator Ture';
   const options = {
-    body: data.body || '',
+    body: data.body || 'Ai o notificare nouă în Calculator Ture.',
     icon: '/icon-192.png',
     badge: '/icon-192.png',
     data: data.url || '/',
