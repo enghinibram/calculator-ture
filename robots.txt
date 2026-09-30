@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://calculatorture.ro/sitemap.xml
+Sitemap: https://app.calculatorture.ro/sitemap.xml
