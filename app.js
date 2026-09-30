@@ -1651,14 +1651,14 @@ function closeShareModal() {
   if (modal) modal.style.display = 'none';
 }
 function shareWhatsApp() {
-  const msg = encodeURIComponent('Bă, am găsit un calculator de ture mișto — calculează automat orele și suplimentarele 👇\nhttps://calculatorture.ro');
+  const msg = encodeURIComponent('Bă, am găsit un calculator de ture mișto — calculează automat orele și suplimentarele 👇\nhttps://app.calculatorture.ro/?utm_source=share&utm_medium=whatsapp');
   window.open('https://wa.me/?text=' + msg, '_blank');
 }
 function shareFacebook() {
-  window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent('https://calculatorture.ro'), '_blank');
+  window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent('https://app.calculatorture.ro/?utm_source=share&utm_medium=facebook'), '_blank');
 }
 function copyLink() {
-  navigator.clipboard.writeText('https://calculatorture.ro').then(() => {
+  navigator.clipboard.writeText('https://app.calculatorture.ro/?utm_source=share&utm_medium=copy').then(() => {
     const btn = document.getElementById('copy-btn-text');
     if (btn) {
       btn.textContent = '✓ Link copiat!';
