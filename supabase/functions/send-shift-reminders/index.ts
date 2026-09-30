@@ -314,13 +314,22 @@ async function runReminders() {
 
     // Dedupe: o singură notificare per user per zi de tură, indiferent
     // de câte rulări orare "văd" aceeași tură în fereastra de 2-3h.
-    // Dacă insert-ul eșuează (conflict SAU orice altă eroare), sărim —
-    // nicio eroare tranzitorie nu blochează încercările viitoare, fiindcă
-    // niciun rând nu rămâne scris dacă insert-ul nu a reușit.
-    const { error: logErr } = await supabase
+    // Ziua se marchează în jurnal abia DUPĂ ce cel puțin o trimitere a
+    // reușit — dacă toate eșuează (sau rularea e întreruptă înainte de
+    // trimitere), ziua rămâne nemarcată și o rulare ulterioară poate
+    // reîncerca. Dacă verificarea jurnalului eșuează, sărim, ca o eroare
+    // tranzitorie să nu ducă la notificări duble.
+    const { data: already, error: checkErr } = await supabase
       .from("push_reminder_log")
-      .insert({ user_id: row.user_id, shift_date: todayDateCol });
-    if (logErr) continue;
+      .select("user_id")
+      .eq("user_id", row.user_id)
+      .eq("shift_date", todayDateCol)
+      .maybeSingle();
+    if (checkErr) {
+      console.error("Reminder log check failed", { code: checkErr.code, message: checkErr.message });
+      continue;
+    }
+    if (already) continue;
 
     const payload = JSON.stringify({
       title: "Calculator Ture",
@@ -328,23 +337,53 @@ async function runReminders() {
       url: "/",
     });
 
+    let delivered = 0;
     for (const sub of userSubs) {
       try {
         await webpush.sendNotification(
           { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth_key } },
           payload
         );
-        sent++;
+        delivered++;
       } catch (err) {
-        const statusCode = (err as { statusCode?: number })?.statusCode;
-        if (statusCode === 404 || statusCode === 410) {
+        // Logăm doar id-ul rândului, serviciul de push, codul HTTP și
+        // motivul — niciodată endpoint-ul, cheile sau headerele (obiectul
+        // de eroare din web-push le conține pe toate).
+        const e = err as { statusCode?: number; body?: string; message?: string };
+        let service = "necunoscut";
+        try {
+          service = new URL(sub.endpoint).host;
+        } catch { /* endpoint invalid */ }
+        console.error("Push failed", {
+          sub_id: sub.id,
+          service,
+          status: e?.statusCode ?? null,
+          reason: String(e?.body || e?.message || "").slice(0, 200),
+        });
+        if (e?.statusCode === 404 || e?.statusCode === 410) {
           // Subscripție expirată/invalidă — o ștergem, ca userul să nu
           // rămână cu o intrare moartă în push_subscriptions.
           await supabase.from("push_subscriptions").delete().eq("id", sub.id);
-        } else {
-          console.error("Push failed for sub", sub.id, statusCode, err);
         }
       }
+    }
+
+    if (delivered === 0) {
+      console.error("Reminder not delivered to any subscription; day left unmarked", {
+        user_id: row.user_id,
+        shift_date: todayDateCol,
+        subscriptions: userSubs.length,
+      });
+      continue;
+    }
+
+    sent += delivered;
+    const { error: logErr } = await supabase
+      .from("push_reminder_log")
+      .insert({ user_id: row.user_id, shift_date: todayDateCol });
+    // 23505 = rândul există deja (o rulare paralelă a marcat ziua) — ok.
+    if (logErr && logErr.code !== "23505") {
+      console.error("Reminder log insert failed", { code: logErr.code, message: logErr.message });
     }
   }
 
