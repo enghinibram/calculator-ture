@@ -126,7 +126,15 @@ export default async function handler(req, res) {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
 
-  if (!webhookSecret || !supabaseUrl || !supabaseSecretKey) {
+  // Variantele lipsă ar face ca orice eveniment să pară „necunoscut" și să fie
+  // ignorat cu 200, fără retry — tratăm asta ca eroare de configurare.
+  if (
+    !webhookSecret ||
+    !supabaseUrl ||
+    !supabaseSecretKey ||
+    !process.env.LEMONSQUEEZY_VARIANT_MONTHLY ||
+    !process.env.LEMONSQUEEZY_VARIANT_YEARLY
+  ) {
     return res.status(500).json({ error: 'Lipsesc variabile de mediu pe server.' });
   }
 
@@ -151,12 +159,19 @@ export default async function handler(req, res) {
     return res.status(200).json({ ignored: true, event: eventName ?? null });
   }
 
+  // Store-ul Lemon Squeezy e comun cu alte produse — un abonament la o
+  // variantă care nu e a calculatorture nu trebuie să atingă premium_status.
+  // 200 ca Lemon Squeezy să nu reîncerce.
+  const plan = planForVariant(String(attrs.variant_id));
+  if (!plan) {
+    return res.status(200).json({ ok: true, ignored: true });
+  }
+
   const email = attrs.user_email;
   if (!email) {
     return res.status(400).json({ error: 'Lipsește user_email din payload.' });
   }
 
-  const plan = planForVariant(String(attrs.variant_id));
   const { isPremium, expiresAt } = resolvePremiumState(attrs);
 
   try {
