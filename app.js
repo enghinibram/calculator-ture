@@ -924,7 +924,10 @@ function renderCal() {
     const cmBadge  = isCm ? `<span class="hol-name hol-cm">CM</span>` : '';
     const dblBadge = isDubla ? `<span class="hol-name hol-dubla">DUBLĂ</span>` : '';
     const legalBdg = legal ? `<span class="hol-name hol-legal" title="${legal}">ZL</span>` : '';
-    const holHtml  = hol   ? `<span class="hol-name hol-${hol.type}">${hol.name}</span>` : '';
+    const holHtml  = !hol ? ''
+      : hol.approx
+        ? `<span class="hol-name hol-${hol.type}" title="${hol.name} — dată aproximativă (±1 zi, în funcție de observarea lunii)">≈ ${hol.name}</span>`
+        : `<span class="hol-name hol-${hol.type}">${hol.name}</span>`;
 
     html += `<div class="${cls}" data-y="${year}" data-m="${month}" data-d="${d}">${d}${badge}${dblBadge}${coBadge}${cmBadge}${legalBdg}${holHtml}</div>`;
   }

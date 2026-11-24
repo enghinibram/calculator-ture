@@ -4,7 +4,8 @@
 // Pentru un an nou (ex. 2028) adaugi O SINGURĂ intrare în YEAR_CONFIG:
 //   - orthodoxEaster: data Paștelui ortodox [lună, zi], verificată din sursă oficială
 //     (la încărcare se compară cu algoritmul Meeus; nepotrivirea apare în consolă)
-//   - religious: zilele iudaice / islamice (datele ortodoxe se calculează din Paște)
+//   - religious: zilele iudaice / islamice (datele ortodoxe se calculează din Paște);
+//     islApprox: true marchează datele islamice ca estimate (afișate cu ≈ în calendar)
 //   - salary: valorile fiscale ale anului (null = încă neconfirmate oficial)
 // Zilele libere legale fixe (art. 139 Codul muncii) sunt în LEGAL_FIXED, iar cele
 // legate de Paște în LEGAL_FROM_EASTER — nu se repetă pe fiecare an.
@@ -59,17 +60,16 @@ const YEAR_CONFIG = {
 
   2026: {
     orthodoxEaster: [4, 12],
-    // Date păstrate exact ca înainte de refactorizare (vezi nota din raport despre
-    // câteva zile iudaice care diferă de hebcal.com — necorectate deocamdată).
     religious: {
+      // Sursa: hebcal.com (diaspora), ziua sărbătorii propriu-zise (nu seara de început)
       iud: [
         [2, 2, 'Tu Bishvat'], [3, 2, 'Postul Esterei'], [3, 3, 'Purim'],
-        [4, 1, 'Pesach'], [4, 2, 'Pesach'], [4, 3, 'Pesach'], [4, 4, 'Pesach'],
-        [4, 7, 'Pesach'], [4, 8, 'Pesach'], [5, 22, 'Shavuot'], [7, 29, "Tisha B'Av"],
-        [9, 11, 'Rosh Hashana'], [9, 12, 'Rosh Hashana'], [9, 20, 'Yom Kippur'],
-        [9, 25, 'Sukkot'], [10, 1, 'Simhat Torah'],
-        [12, 15, 'Chanukah'], [12, 16, 'Chanukah'], [12, 17, 'Chanukah'], [12, 18, 'Chanukah'],
-        [12, 19, 'Chanukah'], [12, 20, 'Chanukah'], [12, 21, 'Chanukah'], [12, 22, 'Chanukah'],
+        [4, 2, 'Pesach'], [4, 3, 'Pesach'], [4, 8, 'Pesach'], [4, 9, 'Pesach'],
+        [5, 22, 'Shavuot'], [7, 23, "Tisha B'Av"],
+        [9, 12, 'Rosh Hashana'], [9, 13, 'Rosh Hashana'], [9, 21, 'Yom Kippur'],
+        [9, 26, 'Sukkot'], [10, 4, 'Simhat Torah'],
+        [12, 5, 'Chanukah'], [12, 6, 'Chanukah'], [12, 7, 'Chanukah'], [12, 8, 'Chanukah'],
+        [12, 9, 'Chanukah'], [12, 10, 'Chanukah'], [12, 11, 'Chanukah'], [12, 12, 'Chanukah'],
       ],
       isl: [
         [3, 19, 'Eid al-Fitr'], [3, 20, 'Eid al-Fitr'], [5, 26, 'Ziua Arafah'],
@@ -98,7 +98,9 @@ const YEAR_CONFIG = {
         [12, 25, 'Chanukah'], [12, 26, 'Chanukah'], [12, 27, 'Chanukah'], [12, 28, 'Chanukah'],
         [12, 29, 'Chanukah'], [12, 30, 'Chanukah'], [12, 31, 'Chanukah'], // continuă 1 ian 2028
       ],
-      // Sursa: islamicfinder.org — date ESTIMATE, depind de observarea lunii (±1 zi)
+      // Sursa: islamicfinder.org — date ESTIMATE, depind de observarea lunii (±1 zi).
+      // Ziua Arafah, Ashura și Mawlid sunt deduse din grila calendarului, nu date explicit.
+      islApprox: true, // calendarul le afișează ca aproximative (≈)
       isl: [
         [3, 9, 'Eid al-Fitr'], [3, 10, 'Eid al-Fitr'], [5, 15, 'Ziua Arafah'],
         [5, 16, 'Eid al-Adha'], [5, 17, 'Eid al-Adha'], [6, 6, 'An Nou Islamic'],
@@ -163,9 +165,9 @@ const _relCache = {};
 function getReligiousHolidaysForYear(year) {
   if (_relCache[year]) return _relCache[year];
   const out = {};
-  const add = (m, d, name, type) => {
+  const add = (m, d, name, type, approx = false) => {
     const k = _ymdKey(year, m, d);
-    if (!out[k]) out[k] = { name, type };
+    if (!out[k]) out[k] = approx ? { name, type, approx } : { name, type };
   };
   for (const [m, d, name] of ORT_FIXED) add(m, d, name, 'ort');
   for (const [off, name] of ORT_FROM_EASTER) {
@@ -175,7 +177,7 @@ function getReligiousHolidaysForYear(year) {
   const rel = YEAR_CONFIG[year]?.religious;
   if (rel) {
     for (const [m, d, name] of rel.iud || []) add(m, d, name, 'iud');
-    for (const [m, d, name] of rel.isl || []) add(m, d, name, 'isl');
+    for (const [m, d, name] of rel.isl || []) add(m, d, name, 'isl', !!rel.islApprox);
   }
   return (_relCache[year] = out);
 }
