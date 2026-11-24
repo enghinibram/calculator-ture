@@ -358,6 +358,24 @@ select:focus { outline: none; border-color: var(--accent); }
 }
 .cal-header button:hover { background: var(--bg-stat); }
 .cal-header button:disabled { opacity: 0.3; cursor: default; }
+.month-label-wrap { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.year-select {
+  background: var(--bg-stat);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 3px 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.year-notice {
+  font-size: 12px;
+  color: #b7791f;
+  background: rgba(236, 201, 75, 0.12);
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin: 0 0 10px;
+}
 
 /* ===== Calendar Grid ===== */
 .cal-grid {
@@ -712,6 +730,8 @@ select:focus { outline: none; border-color: var(--accent); }
   #user-dropdown,
   #nav-notice,
   .cal-header button,
+  .year-select,
+  .year-notice,
   #custom-panel {
     display: none !important;
   }
