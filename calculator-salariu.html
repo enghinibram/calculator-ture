@@ -271,17 +271,29 @@
       return 0;
     }
 
-    // Lunile din selector: anul trecut, anul curent și anii următori din YEAR_CONFIG
+    // Lunile din selector, din YEAR_CONFIG (year-config.js):
+    //   - anii cu valori fiscale confirmate → luni selectabile
+    //   - anul curent și anii următori fără valori → afișați, dar dezactivați
+    //   - anii trecuți fără valori → ascunși
+    // Valorile unui an nu se folosesc niciodată pentru alt an.
     const LUNI = ['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
     function populateNormaSelect() {
       const sel = document.getElementById('norma-select');
       const now = new Date();
-      const years = configuredYears().filter(y => y >= now.getFullYear() - 1);
-      sel.innerHTML = years.map(y => `<optgroup label="${y}">` +
-        LUNI.map((l, m) => `<option value="${y}-${m}">${l} ${y} — ${getNorma(y, m)} ore</option>`).join('') +
-        '</optgroup>').join('');
-      sel.value = `${now.getFullYear()}-${now.getMonth()}`;
-      if (!sel.value) sel.selectedIndex = 0;
+      const years = configuredYears().filter(y => y >= now.getFullYear() - 1)
+        .filter(y => getSalaryRules(y) || y >= now.getFullYear());
+      sel.innerHTML = years.map(y => {
+        const ok = !!getSalaryRules(y);
+        return `<optgroup label="${ok ? y : y + ' — valori fiscale neconfirmate'}">` +
+          LUNI.map((l, m) => ok
+            ? `<option value="${y}-${m}">${l} ${y} — ${getNorma(y, m)} ore</option>`
+            : `<option value="${y}-${m}" disabled>${l} ${y} — ${getNorma(y, m)} ore (indisponibil)</option>`).join('') +
+          '</optgroup>';
+      }).join('');
+      // Implicit: luna curentă dacă e disponibilă, altfel cea mai recentă lună disponibilă
+      const enabled = [...sel.options].filter(o => !o.disabled);
+      const current = enabled.find(o => o.value === `${now.getFullYear()}-${now.getMonth()}`);
+      sel.value = (current || enabled[enabled.length - 1])?.value ?? '';
       updateSalaryYearNote();
     }
     function selectedYearMonth() {
@@ -289,10 +301,18 @@
       return { y, m };
     }
     function updateSalaryYearNote() {
-      const rules = getSalaryRules(selectedYearMonth().y);
+      const sel = document.getElementById('norma-select');
+      const unavailable = [...new Set([...sel.options].filter(o => o.disabled).map(o => o.value.split('-')[0]))];
       const note = document.getElementById('salary-year-note');
-      note.style.display = rules.fallbackFrom ? 'block' : 'none';
-      if (rules.fallbackFrom) note.textContent = `Valorile fiscale pentru ${rules.fallbackFrom} nu sunt încă confirmate oficial — calculul folosește valorile din ${rules.year}.`;
+      note.style.display = unavailable.length ? 'block' : 'none';
+      if (unavailable.length) note.textContent = `Pentru ${unavailable.join(', ')} calculul va fi disponibil după publicarea oficială a valorilor fiscale.`;
+    }
+    function showSalaryUnavailable(an) {
+      document.getElementById('rezultate').style.display = 'block';
+      document.getElementById('info-box').textContent = Number.isInteger(an)
+        ? `Valorile fiscale pentru ${an} nu sunt încă disponibile, așa că salariul nu poate fi calculat pentru această lună.`
+        : 'Alege o lună din listă pentru a calcula salariul.';
+      document.getElementById('result-grid').innerHTML = '';
     }
     document.getElementById('norma-select').addEventListener('change', updateSalaryYearNote);
     populateNormaSelect();
@@ -302,8 +322,9 @@
       const oreNoapte = parseFloat(document.getElementById('ore-noapte').value) || 0;
       const oreExtra = parseFloat(document.getElementById('ore-extra').value) || 0;
       const { y: anNorma, m: lunaNorma } = selectedYearMonth();
+      const rules = Number.isInteger(anNorma) && lunaNorma >= 0 && lunaNorma <= 11 ? getSalaryRules(anNorma) : null;
+      if (!rules) { showSalaryUnavailable(anNorma); return; }
       const norma = getNorma(anNorma, lunaNorma) || 160;
-      const rules = getSalaryRules(anNorma);
       const dependenti = parseInt(document.getElementById('dependenti').value) || 0;
 
       if (brut <= 0) {

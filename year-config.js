@@ -6,7 +6,8 @@
 //     (la încărcare se compară cu algoritmul Meeus; nepotrivirea apare în consolă)
 //   - religious: zilele iudaice / islamice (datele ortodoxe se calculează din Paște);
 //     islApprox: true marchează datele islamice ca estimate (afișate cu ≈ în calendar)
-//   - salary: valorile fiscale ale anului (null = încă neconfirmate oficial)
+//   - salary: valorile fiscale ale anului (null = neconfirmate oficial → calculatorul de
+//     salariu nu calculează pentru acel an; nu se folosesc valorile altui an)
 // Zilele libere legale fixe (art. 139 Codul muncii) sunt în LEGAL_FIXED, iar cele
 // legate de Paște în LEGAL_FROM_EASTER — nu se repetă pe fiecare an.
 // Norma lunii se calculează din aceste date: zile lucrătoare (L–V) minus zilele
@@ -107,9 +108,10 @@ const YEAR_CONFIG = {
         [6, 15, 'Ashura'], [8, 14, 'Mawlid al-Nabi'],
       ],
     },
-    // TODO 2027: CAS / CASS / impozit / deducere personală nu sunt confirmate oficial
-    // pentru 2027. Până atunci calculatorul de salariu folosește valorile ultimului an
-    // confirmat și afișează un avertisment. Completează aici când apar actele normative.
+    // TODO 2027: CAS / CASS / impozit / deducere personală (și salariul minim, dacă
+    // deducerea depinde de el) nu sunt confirmate oficial pentru 2027. Până atunci,
+    // lunile din 2027 apar dezactivate în calculatorul de salariu. Completează aici
+    // când apar actele normative — 2027 devine selectabil automat.
     salary: null,
   },
 };
@@ -199,11 +201,9 @@ function getNorma(year, month) {
   return getWorkingDays(year, month) * 8;
 }
 
-// Valorile fiscale ale anului; pentru ani fără valori confirmate se folosește
-// ultimul an confirmat anterior, cu fallbackFrom setat (pentru avertisment în UI)
+// Valorile fiscale ale anului, sau null dacă nu sunt confirmate oficial.
+// Nu se împrumută niciodată valorile altui an: fără valori, nu se calculează.
 function getSalaryRules(year) {
-  if (YEAR_CONFIG[year]?.salary) return { ...YEAR_CONFIG[year].salary, year, fallbackFrom: null };
-  const prev = configuredYears().filter(y => y < year && YEAR_CONFIG[y].salary).pop()
-            ?? configuredYears().filter(y => YEAR_CONFIG[y].salary).pop();
-  return { ...YEAR_CONFIG[prev].salary, year: prev, fallbackFrom: year };
+  const s = YEAR_CONFIG[year]?.salary;
+  return s ? { ...s, year } : null;
 }
