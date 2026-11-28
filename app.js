@@ -36,6 +36,9 @@ let icsSettings = { ...ICS_DEFAULTS };
 let calculFacutTrimis = false; // GA4: trimitem calcul_facut o singură dată per sesiune
 let pushEligible = false; // is_premium && push_product_active — gatează UI-ul de notificări
 
+// Anunțul „2027 e gata” nu mai apare deloc din această dată (YYYY-MM-DD, ora locală a dispozitivului)
+const BANNER_2027_EXPIRES = '2027-03-01';
+
 // ===== Dark Mode =====
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
@@ -1615,11 +1618,101 @@ document.addEventListener('DOMContentLoaded', () => {
   const premiumModal = document.getElementById('premium-modal');
   if (premiumModal) premiumModal.addEventListener('click', (e) => { if (e.target === premiumModal) closePremiumModal(); });
   initPremiumBanner();
+  initBanner2027();
 });
 
 // ===== Premium Banner =====
 const PREMIUM_BANNER_DISMISS_KEY = 'premium_banner_dismissed';
 const PREMIUM_BANNER_DISMISS_MS = 7 * 24 * 60 * 60 * 1000; // 7 zile
+
+// ===== Anunț 2027 =====
+// Banner inline deasupra calendarului. Nu apare dacă: pe dispozitiv e deja 2027, a trecut
+// BANNER_2027_EXPIRES, utilizatorul l-a închis sau a dat click, ori localStorage nu e disponibil.
+// Când e vizibil alt popup, doar se ascunde păstrându-și locul (calendarul nu sare) și revine după.
+const BANNER_2027_KEY = 'banner_2027_dismissed';
+const BANNER_2027_SESSION_KEY = 'banner_2027_afisat';
+const BANNER_2027_BLOCKERS = [
+  'email-capture-card', 'game-invite', 'cookie-banner',
+  'auth-overlay', 'reset-overlay', 'pdf-modal', 'day-modal', 'share-modal', 'premium-modal', 'pwa-modal',
+  'salary-panel',
+];
+let banner2027Closed = false;      // închis sau folosit în pagina curentă
+let banner2027TrackedHere = false; // rezervă dacă sessionStorage nu e disponibil
+
+function banner2027Eligible(now = new Date()) {
+  if (banner2027Closed) return false;
+  const [ey, em, ed] = BANNER_2027_EXPIRES.split('-').map(Number);
+  if (now >= new Date(ey, em - 1, ed)) return false;
+  if (now.getFullYear() >= 2027) return false;
+  try { return !localStorage.getItem(BANNER_2027_KEY); }
+  catch { return false; } // fără localStorage nu putem ține minte închiderea → nu-l arătăm
+}
+
+function isOnScreen(el) {
+  if (!el) return false;
+  const cs = getComputedStyle(el);
+  return cs.display !== 'none' && cs.visibility !== 'hidden' && el.getClientRects().length > 0;
+}
+
+function trackBanner2027Shown() {
+  try {
+    if (sessionStorage.getItem(BANNER_2027_SESSION_KEY)) return;
+    sessionStorage.setItem(BANNER_2027_SESSION_KEY, '1');
+  } catch {
+    if (banner2027TrackedHere) return;
+  }
+  banner2027TrackedHere = true;
+  if (typeof window.gtag === 'function') gtag('event', 'banner_2027_afisat');
+}
+
+function updateBanner2027() {
+  const el = document.getElementById('banner-2027');
+  if (!el || el.classList.contains('closing')) return;
+  if (!banner2027Eligible()) { el.style.display = 'none'; return; }
+  const blocked = BANNER_2027_BLOCKERS.some(id => isOnScreen(document.getElementById(id)));
+  if (el.style.display === 'none') {
+    if (blocked) return;          // apare prima dată doar când nu e deschis nimic altceva
+    el.style.display = 'flex';
+  }
+  el.style.visibility = blocked ? 'hidden' : 'visible';
+  if (!blocked) trackBanner2027Shown();
+}
+
+function closeBanner2027() {
+  banner2027Closed = true;
+  try { localStorage.setItem(BANNER_2027_KEY, '1'); } catch { /* ignorăm */ }
+  const el = document.getElementById('banner-2027');
+  if (!el || el.style.display === 'none') return;
+  el.style.maxHeight = el.scrollHeight + 'px';
+  void el.offsetHeight; // pornește tranziția de la înălțimea curentă
+  el.classList.add('closing');
+  const done = () => { el.style.display = 'none'; };
+  el.addEventListener('transitionend', done, { once: true });
+  setTimeout(done, 300); // rezervă dacă tranziția nu rulează (reduced motion)
+}
+
+function initBanner2027() {
+  const el = document.getElementById('banner-2027');
+  if (!el) return;
+  el.addEventListener('click', e => {
+    if (e.target.closest('#banner-2027-close')) {
+      if (typeof window.gtag === 'function') gtag('event', 'banner_2027_dismiss');
+    } else {
+      if (typeof window.gtag === 'function') gtag('event', 'banner_2027_click');
+      viewYear = 2027;
+      viewMonth = 0;
+      saveViewMonth();
+      recalc();
+    }
+    closeBanner2027();
+  });
+  const mo = new MutationObserver(updateBanner2027);
+  BANNER_2027_BLOCKERS.forEach(id => {
+    const b = document.getElementById(id);
+    if (b) mo.observe(b, { attributes: true, attributeFilter: ['style', 'class', 'hidden'] });
+  });
+  updateBanner2027();
+}
 
 function initPremiumBanner() {
   const banner = document.getElementById('premium-banner');

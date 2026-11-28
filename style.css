@@ -517,6 +517,19 @@ select:focus { outline: none; border-color: var(--accent); }
 }
 .premium-banner-close:hover { color: var(--text-main); }
 
+/* Anunț 2027: același stil ca .premium-banner, dar înaintea calendarului */
+.banner-2027 { margin-top: 0; margin-bottom: 1.25rem; cursor: pointer; overflow: hidden; }
+.banner-2027.closing {
+  max-height: 0 !important;
+  opacity: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-width: 0;
+  transition: max-height 0.2s ease, opacity 0.2s ease, margin 0.2s ease, padding 0.2s ease;
+}
+@media (prefers-reduced-motion: reduce) { .banner-2027.closing { transition: none; } }
+
 /* ===== Notificări tură (push, Premium) ===== */
 .push-settings {
   margin-top: 1.25rem;
@@ -721,6 +734,7 @@ select:focus { outline: none; border-color: var(--accent); }
   #nav-notice,
   .cal-header button,
   .year-notice,
+  #banner-2027,
   #custom-panel {
     display: none !important;
   }
