@@ -880,7 +880,7 @@ function renderCal() {
 
   const lbl = new Date(year, month, 1).toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' });
   document.getElementById('month-label').textContent = lbl.charAt(0).toUpperCase() + lbl.slice(1);
-  renderYearControls(year);
+  renderYearNotice(year);
 
   const firstDay = new Date(year, month, 1).getDay();
   const offset   = firstDay === 0 ? 6 : firstDay - 1;
@@ -940,33 +940,13 @@ function renderCal() {
   });
 }
 
-// ===== Selector an + avertisment pentru ani neconfigurați =====
-function renderYearControls(year) {
-  const sel = document.getElementById('year-select');
-  if (sel) {
-    const years = configuredYears();
-    if (!years.includes(year)) years.push(year);
-    years.sort((a, b) => a - b);
-    const wanted = years.join(',');
-    if (sel.dataset.years !== wanted) {
-      sel.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
-      sel.dataset.years = wanted;
-    }
-    sel.value = String(year);
-  }
+// ===== Avertisment pentru ani fără date verificate (sub titlul lunii) =====
+function renderYearNotice(year) {
   const notice = document.getElementById('year-notice');
-  if (notice) {
-    const ok = isYearConfigured(year);
-    notice.style.display = ok ? 'none' : 'block';
-    if (!ok) notice.textContent = `Pentru ${year} nu avem încă datele oficiale verificate. Norma și zilele libere sunt estimate (sărbători legale fixe + Paștele calculat).`;
-  }
-}
-
-function changeYear(y) {
-  if (!Number.isInteger(y)) return;
-  viewYear = y;
-  saveViewMonth();
-  recalc();
+  if (!notice) return;
+  const ok = isYearConfigured(year);
+  notice.style.display = ok ? 'none' : 'block';
+  notice.textContent = ok ? '' : `Pentru ${year} nu avem încă datele oficiale verificate. Norma și zilele libere sunt estimate (sărbători legale fixe + Paștele calculat).`;
 }
 
 // ===== Navigare luni =====
@@ -1520,7 +1500,6 @@ document.getElementById('tura-type').addEventListener('change', () => {
 
 document.getElementById('prev-month').addEventListener('click', () => changeMonth(-1));
 document.getElementById('next-month').addEventListener('click', () => changeMonth(1));
-document.getElementById('year-select').addEventListener('change', e => changeYear(parseInt(e.target.value, 10)));
 document.querySelectorAll('.filter-btn').forEach(btn => {
   btn.addEventListener('click', () => toggleFilter(btn.dataset.type));
 });
