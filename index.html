@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- SEO Title & Description -->
-  <title>Calculator Ture Schimburi 2026 | Program Lucru Gratuit</title>
+  <title>Calculator Ture Schimburi 2026–2027 | Program Lucru Gratuit</title>
   <meta name="description" content="Calculator gratuit pentru ture și schimburi de lucru. Calculează ore pontate, norma lunii, concediu CO/CM și ore suplimentare. Ideal pentru port, spital, poliție, jandarmerie." />
   <meta name="keywords" content="calculator ture, calculator schimburi, program lucru schimburi, pontaj ture, calculator ore suplimentare, ture 12/24, ture 24/48" />
   <meta name="google-site-verification" content="ACJ7Irq0KqPaMJViG63_GN92fWASqGDQbsMhN2Qo-WE" />
   <link rel="canonical" href="https://app.calculatorture.ro/" />
 
   <!-- Open Graph (Facebook, WhatsApp share) -->
-  <meta property="og:title" content="Calculator Ture Schimburi 2026 | Gratuit" />
+  <meta property="og:title" content="Calculator Ture Schimburi 2026–2027 | Gratuit" />
   <meta property="og:description" content="Calculează-ți orele de muncă, norma lunii și concediile direct în browser. Gratuit, fără instalare." />
   <meta property="og:url" content="https://app.calculatorture.ro/" />
   <meta property="og:type" content="website" />
@@ -41,7 +41,7 @@
     },
     "featureList": [
       "Calcul ture 12/24, 12/48, 24/48, 24/72",
-      "Norma oficială ore/lună 2025–2026",
+      "Norma oficială ore/lună 2025–2027",
       "Marcare concediu CO și CM",
       "Zile libere legale România",
       "Sărbători ortodoxe, iudaice, islamice",
@@ -68,10 +68,10 @@
       },
       {
         "@type": "Question",
-        "name": "Care este norma de ore pentru 2026?",
+        "name": "Care este norma de ore pentru 2026 și 2027?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Norma variază în funcție de lună. Exemplu: ianuarie 2026 — 144 ore, februarie — 160 ore, martie — 176 ore. Calculatorul folosește normele oficiale conform legislației române."
+          "text": "Norma variază în funcție de lună. Exemplu: ianuarie 2026 — 144 ore, martie 2026 — 176 ore; ianuarie 2027 — 144 ore, martie 2027 — 184 ore. Calculatorul folosește normele oficiale conform legislației române."
         }
       },
       {
@@ -376,9 +376,13 @@
       <p id="nav-notice" style="display:none"></p>
       <div class="cal-header">
         <button id="prev-month">&#8592;</button>
-        <span id="month-label"></span>
+        <span class="month-label-wrap">
+          <span id="month-label"></span>
+          <select id="year-select" class="year-select" aria-label="Alege anul"></select>
+        </span>
         <button id="next-month">&#8594;</button>
       </div>
+      <p id="year-notice" class="year-notice" style="display:none"></p>
       <div class="cal-grid" id="cal"></div>
 
       <div class="legend-shifts">
@@ -390,6 +394,7 @@
         <div class="leg-item"><span class="leg-text ort">Portocaliu</span>&nbsp;= Ortodox</div>
         <div class="leg-item"><span class="leg-text iud">Mov</span>&nbsp;= Iudaic</div>
         <div class="leg-item"><span class="leg-text isl">Verde</span>&nbsp;= Islamic</div>
+        <div class="leg-item"><span class="leg-text isl">≈</span>&nbsp;= dată aprox. (±1 zi)</div>
         <div class="leg-item"><span style="font-size:9px;background:#c0392b;color:white;padding:1px 4px;border-radius:3px;font-weight:700;">ZL</span>&nbsp;= Zi liberă legală</div>
       </div>
     </div>
@@ -562,7 +567,7 @@
 
       <h2>Cum funcționează?</h2>
       <p>
-        Selectezi tipul de tură, apeși pe o zi de start din calendar și programul se generează automat pentru orice lună. Poți marca zilele de concediu medical (CM) sau concediu de odihnă (CO) — fiecare calculat cu 8 ore conform Codului Muncii. Calculatorul folosește normele oficiale de ore ale fiecărei luni din 2025 și 2026.
+        Selectezi tipul de tură, apeși pe o zi de start din calendar și programul se generează automat pentru orice lună. Poți marca zilele de concediu medical (CM) sau concediu de odihnă (CO) — fiecare calculat cu 8 ore conform Codului Muncii. Calculatorul folosește normele oficiale de ore ale fiecărei luni din 2025, 2026 și 2027.
       </p>
 
       <h2>Întrebări frecvente</h2>
@@ -583,8 +588,8 @@
       <h2>Articole utile</h2>
       <ul class="article-links">
         <li><a href="/ture-de-lucru.html">Ture de lucru — tipuri de ture și cum îți calculezi orele</a></li>
-        <li><a href="/calculator-salariu.html">Calculator salariu net din brut 2026 — cu sporuri și ture</a></li>
-        <li><a href="/articole/pontaj-ture.html">Cum se calculează pontajul în ture — ghid complet 2026</a></li>
+        <li><a href="/calculator-salariu.html">Calculator salariu net din brut 2026–2027 — cu sporuri și ture</a></li>
+        <li><a href="/articole/pontaj-ture.html">Cum se calculează pontajul în ture — ghid complet 2026–2027</a></li>
         <li><a href="/articole/spor-noapte.html">Sporul de noapte 2026 — cât e și cum se calculează</a></li>
         <li><a href="/articole/ture-port-spital-jandarmerie.html">Program lucru la port, spital și jandarmerie</a></li>
         <li><a href="/articole/concediu-ture.html">Concediu de odihnă în ture — câte zile ai dreptul</a></li>
@@ -598,6 +603,7 @@
 
   <!-- Versiune fixă, pusă în cache de sw.js ca aplicația să pornească și fără rețea -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js"></script>
+  <script src="year-config.js"></script>
   <script src="app.js"></script>
   <script src="game.js"></script>
   <script>

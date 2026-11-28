@@ -55,21 +55,7 @@ function toggleTheme() {
 })();
 
 // ===== Norme oficiale ore/lună =====
-const NORMA = {
-  2025: [168, 160, 168, 168, 160, 168, 184, 168, 176, 184, 160, 160],
-  2026: [144, 160, 176, 160, 160, 168, 184, 168, 176, 176, 160, 168],
-};
-
-function getNorma(year, month) {
-  if (NORMA[year]) return NORMA[year][month];
-  let wd = 0;
-  const days = new Date(year, month + 1, 0).getDate();
-  for (let d = 1; d <= days; d++) {
-    const dow = new Date(year, month, d).getDay();
-    if (dow !== 0 && dow !== 6) wd++;
-  }
-  return wd * 8;
-}
+// getNorma(year, month) vine din year-config.js (calculată din zilele libere legale ale anului)
 
 // ===== Tipare de tură =====
 const PATTERNS = {
@@ -202,67 +188,8 @@ function buildCustomPattern() {
   return { ore: getCustomOre(), zile: [] };
 }
 
-// ===== Zile libere legale România 2026 =====
-const LEGAL_HOLIDAYS = {
-  '2026-1-1':  'Anul Nou',
-  '2026-1-2':  'Anul Nou',
-  '2026-1-24': 'Unirea Principatelor',
-  '2026-4-10': 'Vinerea Mare',
-  '2026-4-12': 'Paștele',
-  '2026-4-13': 'Paștele',
-  '2026-5-1':  'Ziua Muncii',
-  '2026-6-1':  'Ziua Copilului',
-  '2026-6-7':  'Rusaliile',
-  '2026-6-8':  'Rusaliile',
-  '2026-8-15': 'Sf. Maria',
-  '2026-11-30':'Sf. Andrei',
-  '2026-12-1': 'Ziua Națională',
-  '2026-12-25':'Crăciunul',
-  '2026-12-26':'Crăciunul',
-};
-
-// ===== Sărbători religioase/culturale 2026 =====
-const HOLIDAYS = {
-  '2026-1-6':  { name: 'Boboteaza',       type: 'ort' },
-  '2026-1-7':  { name: 'Sf. Ioan',        type: 'ort' },
-  '2026-2-24': { name: 'Dragobete',       type: 'ort' },
-  '2026-3-8':  { name: '8 Martie',        type: 'ort' },
-  '2026-4-5':  { name: 'Floriile',        type: 'ort' },
-  '2026-4-11': { name: 'Sâmbăta Mare',    type: 'ort' },
-  '2026-5-21': { name: 'Înălțarea',       type: 'ort' },
-  '2026-2-2':  { name: 'Tu Bishvat',      type: 'iud' },
-  '2026-3-2':  { name: 'Postul Esterei',  type: 'iud' },
-  '2026-3-3':  { name: 'Purim',           type: 'iud' },
-  '2026-4-1':  { name: 'Pesach',          type: 'iud' },
-  '2026-4-2':  { name: 'Pesach',          type: 'iud' },
-  '2026-4-3':  { name: 'Pesach',          type: 'iud' },
-  '2026-4-4':  { name: 'Pesach',          type: 'iud' },
-  '2026-4-7':  { name: 'Pesach',          type: 'iud' },
-  '2026-4-8':  { name: 'Pesach',          type: 'iud' },
-  '2026-5-22': { name: 'Shavuot',         type: 'iud' },
-  '2026-7-29': { name: "Tisha B'Av",      type: 'iud' },
-  '2026-9-11': { name: 'Rosh Hashana',    type: 'iud' },
-  '2026-9-12': { name: 'Rosh Hashana',    type: 'iud' },
-  '2026-9-20': { name: 'Yom Kippur',      type: 'iud' },
-  '2026-9-25': { name: 'Sukkot',          type: 'iud' },
-  '2026-10-1': { name: 'Simhat Torah',    type: 'iud' },
-  '2026-12-15':{ name: 'Chanukah',        type: 'iud' },
-  '2026-12-16':{ name: 'Chanukah',        type: 'iud' },
-  '2026-12-17':{ name: 'Chanukah',        type: 'iud' },
-  '2026-12-18':{ name: 'Chanukah',        type: 'iud' },
-  '2026-12-19':{ name: 'Chanukah',        type: 'iud' },
-  '2026-12-20':{ name: 'Chanukah',        type: 'iud' },
-  '2026-12-21':{ name: 'Chanukah',        type: 'iud' },
-  '2026-12-22':{ name: 'Chanukah',        type: 'iud' },
-  '2026-3-19': { name: 'Eid al-Fitr',     type: 'isl' },
-  '2026-3-20': { name: 'Eid al-Fitr',     type: 'isl' },
-  '2026-5-26': { name: 'Ziua Arafah',     type: 'isl' },
-  '2026-5-27': { name: 'Eid al-Adha',     type: 'isl' },
-  '2026-5-28': { name: 'Eid al-Adha',     type: 'isl' },
-  '2026-6-16': { name: 'An Nou Islamic',  type: 'isl' },
-  '2026-6-25': { name: 'Ashura',          type: 'isl' },
-  '2026-8-25': { name: 'Mawlid al-Nabi',  type: 'isl' },
-};
+// ===== Zile libere legale și sărbători religioase =====
+// Definite pe an în year-config.js (YEAR_CONFIG); aici doar le citim.
 
 // ===== Utilitare =====
 function dayKey(y, m, d) { return y + '-' + m + '-' + d; }
@@ -298,11 +225,11 @@ function getOrePerZi() {
 }
 
 function getLegalHoliday(year, month, day) {
-  return LEGAL_HOLIDAYS[dayKey(year, month, day)] || null;
+  return getLegalHolidaysForYear(year)[dayKey(year, month, day)] || null;
 }
 
 function getHoliday(year, month, day) {
-  const h = HOLIDAYS[dayKey(year, month, day)];
+  const h = getReligiousHolidaysForYear(year)[dayKey(year, month, day)];
   if (!h || !filters[h.type]) return null;
   return h;
 }
@@ -953,6 +880,7 @@ function renderCal() {
 
   const lbl = new Date(year, month, 1).toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' });
   document.getElementById('month-label').textContent = lbl.charAt(0).toUpperCase() + lbl.slice(1);
+  renderYearControls(year);
 
   const firstDay = new Date(year, month, 1).getDay();
   const offset   = firstDay === 0 ? 6 : firstDay - 1;
@@ -996,7 +924,10 @@ function renderCal() {
     const cmBadge  = isCm ? `<span class="hol-name hol-cm">CM</span>` : '';
     const dblBadge = isDubla ? `<span class="hol-name hol-dubla">DUBLĂ</span>` : '';
     const legalBdg = legal ? `<span class="hol-name hol-legal" title="${legal}">ZL</span>` : '';
-    const holHtml  = hol   ? `<span class="hol-name hol-${hol.type}">${hol.name}</span>` : '';
+    const holHtml  = !hol ? ''
+      : hol.approx
+        ? `<span class="hol-name hol-${hol.type}" title="${hol.name} — dată aproximativă (±1 zi, în funcție de observarea lunii)">≈ ${hol.name}</span>`
+        : `<span class="hol-name hol-${hol.type}">${hol.name}</span>`;
 
     html += `<div class="${cls}" data-y="${year}" data-m="${month}" data-d="${d}">${d}${badge}${dblBadge}${coBadge}${cmBadge}${legalBdg}${holHtml}</div>`;
   }
@@ -1007,6 +938,35 @@ function renderCal() {
       handleDayClick(parseInt(el.dataset.y), parseInt(el.dataset.m), parseInt(el.dataset.d));
     });
   });
+}
+
+// ===== Selector an + avertisment pentru ani neconfigurați =====
+function renderYearControls(year) {
+  const sel = document.getElementById('year-select');
+  if (sel) {
+    const years = configuredYears();
+    if (!years.includes(year)) years.push(year);
+    years.sort((a, b) => a - b);
+    const wanted = years.join(',');
+    if (sel.dataset.years !== wanted) {
+      sel.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join('');
+      sel.dataset.years = wanted;
+    }
+    sel.value = String(year);
+  }
+  const notice = document.getElementById('year-notice');
+  if (notice) {
+    const ok = isYearConfigured(year);
+    notice.style.display = ok ? 'none' : 'block';
+    if (!ok) notice.textContent = `Pentru ${year} nu avem încă datele oficiale verificate. Norma și zilele libere sunt estimate (sărbători legale fixe + Paștele calculat).`;
+  }
+}
+
+function changeYear(y) {
+  if (!Number.isInteger(y)) return;
+  viewYear = y;
+  saveViewMonth();
+  recalc();
 }
 
 // ===== Navigare luni =====
@@ -1560,6 +1520,7 @@ document.getElementById('tura-type').addEventListener('change', () => {
 
 document.getElementById('prev-month').addEventListener('click', () => changeMonth(-1));
 document.getElementById('next-month').addEventListener('click', () => changeMonth(1));
+document.getElementById('year-select').addEventListener('change', e => changeYear(parseInt(e.target.value, 10)));
 document.querySelectorAll('.filter-btn').forEach(btn => {
   btn.addEventListener('click', () => toggleFilter(btn.dataset.type));
 });

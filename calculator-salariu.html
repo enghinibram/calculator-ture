@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Calculator Salariu Net din Brut 2026 — cu Sporuri de Tură | Calculator Ture</title>
-  <meta name="description" content="Calculează rapid salariul net din brut în 2026, cu sporuri de noapte, weekend și ore suplimentare pentru lucrătorii în ture. Gratuit, actualizat, fără înregistrare." />
+  <title>Calculator Salariu Net din Brut 2026–2027 — cu Sporuri de Tură | Calculator Ture</title>
+  <meta name="description" content="Calculează rapid salariul net din brut în 2026 și 2027, cu sporuri de noapte, weekend și ore suplimentare pentru lucrătorii în ture. Gratuit, actualizat, fără înregistrare." />
   <link rel="canonical" href="https://app.calculatorture.ro/calculator-salariu.html" />
   <link rel="stylesheet" href="article.css" />
   <style>
@@ -110,7 +110,7 @@
   <div class="wrap">
     <nav class="breadcrumb"><a href="/">← Calculator Ture</a></nav>
 
-    <h1>Calculator Salariu Net 2026</h1>
+    <h1>Calculator Salariu Net 2026–2027</h1>
     <p>Calculează salariul net din brut, cu toate deducerile fiscale românești, spor de noapte și ore suplimentare.</p>
 
     <hr class="divider" />
@@ -147,20 +147,8 @@
 
       <div class="input-group">
         <label>Norma lunii (ore)</label>
-        <select id="norma-select">
-          <option value="144">Ianuarie 2026 — 144 ore</option>
-          <option value="160" selected>Februarie 2026 — 160 ore</option>
-          <option value="176">Martie 2026 — 176 ore</option>
-          <option value="160">Aprilie 2026 — 160 ore</option>
-          <option value="152">Mai 2026 — 152 ore</option>
-          <option value="160">Iunie 2026 — 160 ore</option>
-          <option value="184">Iulie 2026 — 184 ore</option>
-          <option value="168">August 2026 — 168 ore</option>
-          <option value="176">Septembrie 2026 — 176 ore</option>
-          <option value="176">Octombrie 2026 — 176 ore</option>
-          <option value="152">Noiembrie 2026 — 152 ore</option>
-          <option value="168">Decembrie 2026 — 168 ore</option>
-        </select>
+        <select id="norma-select"></select>
+        <small id="salary-year-note" style="color:#b7791f; font-size:11px; margin-top:4px; display:none;"></small>
       </div>
 
       <div class="input-group">
@@ -184,8 +172,8 @@
 
     <hr class="divider" />
 
-    <h2>Cum se calculează salariul net din brut în 2026</h2>
-    <p>Salariul net reprezintă suma pe care o primești efectiv în cont, după ce din salariul brut se scad contribuțiile sociale obligatorii și impozitul pe venit. În 2026, calculul se face astfel:</p>
+    <h2>Cum se calculează salariul net din brut</h2>
+    <p>Salariul net reprezintă suma pe care o primești efectiv în cont, după ce din salariul brut se scad contribuțiile sociale obligatorii și impozitul pe venit. În 2026, calculul se face astfel (valorile pentru 2027 se actualizează când sunt publicate oficial):</p>
     <ul>
       <li><strong>CAS (contribuția la pensie): 25%</strong> din salariul brut</li>
       <li><strong>CASS (contribuția la sănătate): 10%</strong> din salariul brut</li>
@@ -250,7 +238,7 @@
 
     <h2>Întrebări frecvente</h2>
     <dl class="faq-list">
-      <dt>Cât e salariul minim net în 2026?</dt>
+      <dt>Cât e salariul minim net în 2026 și 2027?</dt>
       <dd>Salariul minim brut pe economie se stabilește anual prin hotărâre de guvern. Din salariul minim brut, după scăderea CAS, CASS și impozitului, rezultă salariul minim net — verifică valoarea actualizată pentru anul curent, deoarece se poate modifica prin acte normative.</dd>
 
       <dt>Ce diferență e între salariul brut și salariul net?</dt>
@@ -272,24 +260,71 @@
     <p style="margin-top:1rem; font-size:14px;">Vezi și: <a href="/ture-de-lucru.html">Ture de lucru — tipuri de ture și cum îți calculezi orele</a></p>
   </div>
 
+  <script src="/year-config.js"></script>
   <script>
-    function getDeducere(brut, dependenti) {
-      // Deducere personală 2026 conform legislației
-      if (brut <= 2000) {
-        const baza = [300, 400, 500, 600, 700][Math.min(dependenti, 4)];
-        return baza;
-      } else if (brut <= 3600) {
-        const baza = [300, 400, 500, 600, 700][Math.min(dependenti, 4)];
-        return Math.round(baza * (1 - (brut - 2000) / 1600));
-      }
+    // Deducere personală — valorile anului din YEAR_CONFIG (year-config.js)
+    function getDeducere(brut, dependenti, rules) {
+      const { full, zero, baze } = rules.deducere;
+      const baza = baze[Math.min(dependenti, baze.length - 1)];
+      if (brut <= full) return baza;
+      if (brut <= zero) return Math.round(baza * (1 - (brut - full) / (zero - full)));
       return 0;
     }
+
+    // Lunile din selector, din YEAR_CONFIG (year-config.js):
+    //   - anii cu valori fiscale confirmate → luni selectabile
+    //   - anul curent și anii următori fără valori → afișați, dar dezactivați
+    //   - anii trecuți fără valori → ascunși
+    // Valorile unui an nu se folosesc niciodată pentru alt an.
+    const LUNI = ['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
+    function populateNormaSelect() {
+      const sel = document.getElementById('norma-select');
+      const now = new Date();
+      const years = configuredYears().filter(y => y >= now.getFullYear() - 1)
+        .filter(y => getSalaryRules(y) || y >= now.getFullYear());
+      sel.innerHTML = years.map(y => {
+        const ok = !!getSalaryRules(y);
+        return `<optgroup label="${ok ? y : y + ' — valori fiscale neconfirmate'}">` +
+          LUNI.map((l, m) => ok
+            ? `<option value="${y}-${m}">${l} ${y} — ${getNorma(y, m)} ore</option>`
+            : `<option value="${y}-${m}" disabled>${l} ${y} — ${getNorma(y, m)} ore (indisponibil)</option>`).join('') +
+          '</optgroup>';
+      }).join('');
+      // Implicit: luna curentă dacă e disponibilă, altfel cea mai recentă lună disponibilă
+      const enabled = [...sel.options].filter(o => !o.disabled);
+      const current = enabled.find(o => o.value === `${now.getFullYear()}-${now.getMonth()}`);
+      sel.value = (current || enabled[enabled.length - 1])?.value ?? '';
+      updateSalaryYearNote();
+    }
+    function selectedYearMonth() {
+      const [y, m] = document.getElementById('norma-select').value.split('-').map(Number);
+      return { y, m };
+    }
+    function updateSalaryYearNote() {
+      const sel = document.getElementById('norma-select');
+      const unavailable = [...new Set([...sel.options].filter(o => o.disabled).map(o => o.value.split('-')[0]))];
+      const note = document.getElementById('salary-year-note');
+      note.style.display = unavailable.length ? 'block' : 'none';
+      if (unavailable.length) note.textContent = `Pentru ${unavailable.join(', ')} calculul va fi disponibil după publicarea oficială a valorilor fiscale.`;
+    }
+    function showSalaryUnavailable(an) {
+      document.getElementById('rezultate').style.display = 'block';
+      document.getElementById('info-box').textContent = Number.isInteger(an)
+        ? `Valorile fiscale pentru ${an} nu sunt încă disponibile, așa că salariul nu poate fi calculat pentru această lună.`
+        : 'Alege o lună din listă pentru a calcula salariul.';
+      document.getElementById('result-grid').innerHTML = '';
+    }
+    document.getElementById('norma-select').addEventListener('change', updateSalaryYearNote);
+    populateNormaSelect();
 
     function calculeaza() {
       const brut = parseFloat(document.getElementById('brut').value) || 0;
       const oreNoapte = parseFloat(document.getElementById('ore-noapte').value) || 0;
       const oreExtra = parseFloat(document.getElementById('ore-extra').value) || 0;
-      const norma = parseFloat(document.getElementById('norma-select').value) || 160;
+      const { y: anNorma, m: lunaNorma } = selectedYearMonth();
+      const rules = Number.isInteger(anNorma) && lunaNorma >= 0 && lunaNorma <= 11 ? getSalaryRules(anNorma) : null;
+      if (!rules) { showSalaryUnavailable(anNorma); return; }
+      const norma = getNorma(anNorma, lunaNorma) || 160;
       const dependenti = parseInt(document.getElementById('dependenti').value) || 0;
 
       if (brut <= 0) {
@@ -307,11 +342,11 @@ const sporExtra = Math.round(oreExtra * tarifOrar * procentExtra * 100) / 100;
       const brutTotal = Math.round((brut + sporNoapte + sporExtra) * 100) / 100;
 
       // Contributii
-      const cas = Math.round(brutTotal * 0.25 * 100) / 100;
-      const cass = Math.round(brutTotal * 0.10 * 100) / 100;
-      const deducere = getDeducere(brut, dependenti);
+      const cas = Math.round(brutTotal * rules.cas * 100) / 100;
+      const cass = Math.round(brutTotal * rules.cass * 100) / 100;
+      const deducere = getDeducere(brut, dependenti, rules);
       const bazaImpozit = Math.max(0, brutTotal - cas - cass - deducere);
-      const impozit = Math.round(bazaImpozit * 0.10 * 100) / 100;
+      const impozit = Math.round(bazaImpozit * rules.impozit * 100) / 100;
       const net = Math.round((brutTotal - cas - cass - impozit) * 100) / 100;
 
       // Afișare
