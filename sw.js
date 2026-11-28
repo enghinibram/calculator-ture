@@ -1,4 +1,4 @@
-const CACHE = 'ture-v64';
+const CACHE = 'ture-v66';
 const ASSETS = [
   '/',
   '/index.html',
@@ -7,6 +7,7 @@ const ASSETS = [
   '/app.js',
   '/manifest.json',
   '/calculator-salariu.html',
+  '/salary-calc.js',
   '/article.css',
   '/game.js',
 ];

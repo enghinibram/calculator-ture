@@ -177,9 +177,11 @@
     <ul>
       <li><strong>CAS (contribuția la pensie): 25%</strong> din salariul brut</li>
       <li><strong>CASS (contribuția la sănătate): 10%</strong> din salariul brut</li>
-      <li><strong>Impozit pe venit: 10%</strong>, aplicat la baza de calcul rămasă după scăderea CAS și CASS (și, dacă e cazul, a deducerii personale)</li>
+      <li><strong>Impozit pe venit: 10%</strong>, aplicat la baza de calcul rămasă după scăderea CAS, CASS și a deducerii personale</li>
+      <li><strong>Deducerea personală</strong> se acordă dacă venitul brut lunar e cel mult salariul minim + 2.000 lei: între 20% (fără persoane în întreținere) și 45% (4 sau mai multe) din salariul minim, în scădere cu 0,5 puncte procentuale la fiecare 50 lei peste salariul minim</li>
     </ul>
-    <p>Formula simplificată: <strong>Salariu net = Salariu brut − CAS (25%) − CASS (10%) − Impozit (10% din rest)</strong></p>
+    <p><strong>Atenție:</strong> calculatorul nu include suma netaxabilă pentru salariul minim (facilitatea prin care, la salariul de bază egal cu salariul minim, o parte din venit nu se impozitează și nu intră la CAS și CASS). Dacă ai salariul minim și beneficiezi de această facilitate, netul tău real e ceva mai mare decât rezultatul de aici. Calculul folosește salariul minim brut pe țară pentru luna aleasă (4.050 lei până în iunie 2026, 4.325 lei din iulie 2026); verifică salariul minim care se aplică lunii tale.</p>
+    <p>Formula simplificată: <strong>Salariu net = Salariu brut − CAS (25%) − CASS (10%) − Impozit (10% din rest, după deducere)</strong></p>
     <p>Pentru angajații care lucrează în ture, la acest calcul se adaugă sporurile (noapte, weekend, ore suplimentare), care se aplică la salariul brut înainte de scăderea contribuțiilor.</p>
 
     <h2>Exemplu concret de calcul</h2>
@@ -189,39 +191,39 @@
           <th>Salariu brut</th>
           <th>CAS (25%)</th>
           <th>CASS (10%)</th>
-          <th>Baza impozabilă</th>
+          <th>Deducere personală</th>
           <th>Impozit (10%)</th>
-          <th>Salariu net aproximativ</th>
+          <th>Salariu net</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td>3.700 RON</td>
-          <td>925 RON</td>
-          <td>370 RON</td>
-          <td>2.405 RON</td>
-          <td>240 RON</td>
-          <td>~2.165 RON</td>
+          <td>4.325 RON (minim)</td>
+          <td>1.081 RON</td>
+          <td>433 RON</td>
+          <td>865 RON</td>
+          <td>195 RON</td>
+          <td>2.616 RON</td>
         </tr>
         <tr>
-          <td>4.500 RON</td>
-          <td>1.125 RON</td>
-          <td>450 RON</td>
-          <td>2.925 RON</td>
-          <td>292 RON</td>
-          <td>~2.633 RON</td>
+          <td>5.000 RON</td>
+          <td>1.250 RON</td>
+          <td>500 RON</td>
+          <td>562 RON</td>
+          <td>269 RON</td>
+          <td>2.981 RON</td>
         </tr>
         <tr>
           <td>6.000 RON</td>
           <td>1.500 RON</td>
           <td>600 RON</td>
-          <td>3.900 RON</td>
-          <td>390 RON</td>
-          <td>~3.510 RON</td>
+          <td>130 RON</td>
+          <td>377 RON</td>
+          <td>3.523 RON</td>
         </tr>
       </tbody>
     </table>
-    <p class="table-note"><em>Valorile sunt orientative și nu includ deduceri personale sau alte particularități fiscale individuale.</em></p>
+    <p class="table-note"><em>Exemple pentru iulie–decembrie 2026, fără persoane în întreținere, la funcția de bază. Nu sunt incluse suma netaxabilă pentru salariul minim și alte facilități (de exemplu deducerea suplimentară pentru tinerii sub 26 de ani).</em></p>
 
     <h2>Sporurile pentru muncă în ture</h2>
     <p>Dacă lucrezi în schimburi, salariul tău brut poate include sporuri suplimentare față de salariul de bază:</p>
@@ -248,7 +250,7 @@
       <dd>Da. Sporurile (noapte, weekend, ore suplimentare) se adaugă la salariul brut de bază, iar impozitul și contribuțiile se calculează pe suma totală, nu doar pe salariul de bază.</dd>
 
       <dt>Există deducere personală pentru calculul impozitului?</dt>
-      <dd>Da, în funcție de nivelul venitului brut și numărul de persoane aflate în întreținere, se poate aplica o deducere personală care reduce baza impozabilă. Aceasta variază de la caz la caz.</dd>
+      <dd>Da, dacă venitul brut lunar e cel mult salariul minim + 2.000 lei. La salariul minim ea este 20% din salariul minim fără persoane în întreținere și ajunge la 45% cu 4 sau mai multe persoane; peste salariul minim scade cu 0,5 puncte procentuale la fiecare 50 lei. Se acordă doar la funcția de bază.</dd>
 
       <dt>Pot calcula și salariul brut pornind de la cel net?</dt>
       <dd>Calculul invers (din net în brut) presupune formule diferite, fiindcă procentele nu se aplică simplu invers. Dacă ai nevoie de acest calcul, contactează-ne sau verifică cu un specialist în contabilitate/HR.</dd>
@@ -261,16 +263,8 @@
   </div>
 
   <script src="/year-config.js"></script>
+  <script src="/salary-calc.js"></script>
   <script>
-    // Deducere personală — valorile anului din YEAR_CONFIG (year-config.js)
-    function getDeducere(brut, dependenti, rules) {
-      const { full, zero, baze } = rules.deducere;
-      const baza = baze[Math.min(dependenti, baze.length - 1)];
-      if (brut <= full) return baza;
-      if (brut <= zero) return Math.round(baza * (1 - (brut - full) / (zero - full)));
-      return 0;
-    }
-
     // Lunile din selector, din YEAR_CONFIG (year-config.js):
     //   - anii cu valori fiscale confirmate → luni selectabile
     //   - anul curent și anii următori fără valori → afișați, dar dezactivați
@@ -322,7 +316,7 @@
       const oreNoapte = parseFloat(document.getElementById('ore-noapte').value) || 0;
       const oreExtra = parseFloat(document.getElementById('ore-extra').value) || 0;
       const { y: anNorma, m: lunaNorma } = selectedYearMonth();
-      const rules = Number.isInteger(anNorma) && lunaNorma >= 0 && lunaNorma <= 11 ? getSalaryRules(anNorma) : null;
+      const rules = Number.isInteger(anNorma) && lunaNorma >= 0 && lunaNorma <= 11 ? getSalaryRules(anNorma, lunaNorma) : null;
       if (!rules) { showSalaryUnavailable(anNorma); return; }
       const norma = getNorma(anNorma, lunaNorma) || 160;
       const dependenti = parseInt(document.getElementById('dependenti').value) || 0;
@@ -332,22 +326,12 @@
         return;
       }
 
-      const tarifOrar = brut / norma;
+      // Câmp gol → procentul legal minim; 0 introdus de utilizator rămâne 0
+      const procentNoapte = parseNumberOr(document.getElementById('procent-noapte').value, 25);
+      const procentExtra  = parseNumberOr(document.getElementById('procent-extra').value, 75);
 
-      // Sporuri
-     const procentNoapte = (parseFloat(document.getElementById('procent-noapte').value) || 25) / 100;
-const procentExtra = (parseFloat(document.getElementById('procent-extra').value) || 75) / 100;
-const sporNoapte = Math.round(oreNoapte * tarifOrar * procentNoapte * 100) / 100;
-const sporExtra = Math.round(oreExtra * tarifOrar * procentExtra * 100) / 100;
-      const brutTotal = Math.round((brut + sporNoapte + sporExtra) * 100) / 100;
-
-      // Contributii
-      const cas = Math.round(brutTotal * rules.cas * 100) / 100;
-      const cass = Math.round(brutTotal * rules.cass * 100) / 100;
-      const deducere = getDeducere(brut, dependenti, rules);
-      const bazaImpozit = Math.max(0, brutTotal - cas - cass - deducere);
-      const impozit = Math.round(bazaImpozit * rules.impozit * 100) / 100;
-      const net = Math.round((brutTotal - cas - cass - impozit) * 100) / 100;
+      const r = computeNetSalary({ brut, oreNoapte, oreExtra, procentNoapte, procentExtra, norma, dependenti }, rules);
+      const { tarifOrar, sporNoapte, sporExtra, brutTotal, cas, cass, deducere, impozit, net } = r;
 
       // Afișare
       document.getElementById('rezultate').style.display = 'block';
@@ -355,6 +339,9 @@ const sporExtra = Math.round(oreExtra * tarifOrar * procentExtra * 100) / 100;
       let infoText = `Tarif orar: ${tarifOrar.toFixed(2)} lei/oră`;
       if (oreNoapte > 0) infoText += ` · Spor noapte: +${sporNoapte} lei`;
       if (oreExtra > 0) infoText += ` · Spor ore extra: +${sporExtra} lei`;
+      infoText += ` · Salariul minim folosit: ${rules.salariuMinim.toLocaleString('ro-RO')} lei` +
+        (rules.actNormativ ? ` (${rules.actNormativ})` : '');
+      if (brut === rules.salariuMinim) infoText += ' · Fără suma netaxabilă pentru salariul minim (nu e inclusă în calcul)';
       document.getElementById('info-box').textContent = infoText;
 
       document.getElementById('result-grid').innerHTML = `
@@ -379,7 +366,7 @@ const sporExtra = Math.round(oreExtra * tarifOrar * procentExtra * 100) / 100;
           <div class="result-lbl">Impozit venit (10%)</div>
         </div>
         <div class="result-item">
-          <div class="result-val">${deducere} lei</div>
+          <div class="result-val">${deducere.toLocaleString('ro-RO')} lei</div>
           <div class="result-lbl">Deducere personală</div>
         </div>
       `;

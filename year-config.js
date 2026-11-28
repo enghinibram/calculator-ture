@@ -6,8 +6,9 @@
 //     (la încărcare se compară cu algoritmul Meeus; nepotrivirea apare în consolă)
 //   - religious: zilele iudaice / islamice (datele ortodoxe se calculează din Paște);
 //     islApprox: true marchează datele islamice ca estimate (afișate cu ≈ în calendar)
-//   - salary: valorile fiscale ale anului (null = neconfirmate oficial → calculatorul de
-//     salariu nu calculează pentru acel an; nu se folosesc valorile altui an)
+//   - salary: valorile fiscale ale anului, cu salariul minim pe perioade (null = neconfirmate
+//     oficial → calculatorul de salariu nu calculează pentru acel an; nu se folosesc valorile
+//     altui an). Formula de calcul e în salary-calc.js.
 // Zilele libere legale fixe (art. 139 Codul muncii) sunt în LEGAL_FIXED, iar cele
 // legate de Paște în LEGAL_FROM_EASTER — nu se repetă pe fiecare an.
 // Norma lunii se calculează din aceste date: zile lucrătoare (L–V) minus zilele
@@ -80,8 +81,17 @@ const YEAR_CONFIG = {
     },
     salary: {
       cas: 0.25, cass: 0.10, impozit: 0.10,
-      // Deducere personală: [plafon complet, plafon zero, baze pe nr. persoane în întreținere]
-      deducere: { full: 2000, zero: 3600, baze: [300, 400, 500, 600, 700] },
+      // Salariul minim se schimbă în cursul anului → valori pe perioade (luna de început, 1–12).
+      //   salariuMinim:     4.050 lei, apoi 4.325 lei din 1 iulie (HG 146/2026).
+      //   actNormativ:      afișat utilizatorului lângă salariul minim, în rezultat.
+      // Pentru dezvoltatori: valorile salariului minim vin din surse secundare (presă, site-uri de
+      // contabilitate); textul oficial al HG 146/2026 nu a fost citit.
+      // Regulile deducerii (salary-calc.js) sunt verificate în Codul fiscal consolidat ANAF, art. 77.
+      // Suma netaxabilă pentru salariul minim NU e inclusă (neverificată în sursa oficială).
+      perioade: [
+        { dinLuna: 1, salariuMinim: 4050 },
+        { dinLuna: 7, salariuMinim: 4325, actNormativ: 'HG 146/2026' },
+      ],
     },
   },
 
@@ -201,9 +211,13 @@ function getNorma(year, month) {
   return getWorkingDays(year, month) * 8;
 }
 
-// Valorile fiscale ale anului, sau null dacă nu sunt confirmate oficial.
-// Nu se împrumută niciodată valorile altui an: fără valori, nu se calculează.
-function getSalaryRules(year) {
+// Valorile fiscale pentru o lună (month = 0..11; implicit ianuarie), sau null dacă anul nu
+// are valori confirmate oficial. Nu se împrumută niciodată valorile altui an.
+function getSalaryRules(year, month = 0) {
   const s = YEAR_CONFIG[year]?.salary;
-  return s ? { ...s, year } : null;
+  if (!s) return null;
+  const perioada = s.perioade.filter(p => p.dinLuna <= month + 1).pop();
+  if (!perioada) return null;
+  const { perioade, ...rest } = s;
+  return { ...rest, ...perioada, year, month };
 }
